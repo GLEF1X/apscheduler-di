@@ -1,0 +1,19 @@
+[pytest]
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    @abstractmethod
+    @abc.abstractmethod
+    type: ignore
+    raise NotImplementedError
+    def __repr__
+    def __str__
+    class .*\bProtocol\):
+    pass
+omit =
+    apscheduler_di/decorator.py
+    */site-packages/*
+    */tests/*
+    */.eggs/*
