@@ -9,7 +9,7 @@
 ## Features:
 
 * Supports type hints ([PEP 561](https://www.python.org/dev/peps/pep-0561/))
-* Extend `apscheduler` and provide easy aliases for events(such as `on_startup`, `on_shutdown` and
+* Extend `apscheduler` and provide handy aliases for events(such as `on_startup`, `on_shutdown` and
   etc)
 * Provide an opportunity to implement `Dependency Inversion` SOLID principle
 
