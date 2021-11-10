@@ -1,10 +1,10 @@
 import asyncio
+import dataclasses
 from abc import abstractmethod, ABC
 from typing import Dict
 
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from rodi import Services
 
 from apscheduler_di.decorator import ContextSchedulerDecorator
 
@@ -27,6 +27,11 @@ class Cat:
         self.name = name
 
 
+@dataclasses.dataclass()
+class Config:
+    some_param: int
+
+
 # abstract interface
 class ICatsRepository(ABC):
     @abstractmethod
@@ -40,9 +45,9 @@ class PostgresCatsRepository(ICatsRepository):
         return Cat("...")
 
 
-async def some_job(ctx: Services):
-    repository = ctx.get(ICatsRepository)
-    print(repository.get_by_id(id))  # type: Cat
+async def some_job(repository: ICatsRepository, config: Config):
+    cat = repository.get_by_id(config.some_param)
+    print(cat.name)
 
 
 async def some_infinite_cycle():
@@ -54,6 +59,7 @@ def run_scheduler():
     scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores,
                                                            job_defaults=job_defaults))
     scheduler.ctx.add_instance(PostgresCatsRepository(), ICatsRepository)
+    scheduler.ctx.add_instance(Config(id=1), Config)
     scheduler.add_job(some_job, trigger="interval", seconds=5)
     scheduler.start()
 

@@ -1,30 +1,30 @@
 import asyncio
-from datetime import timedelta, datetime
-from threading import TIMEOUT_MAX
+import types
+from datetime import datetime
+from threading import RLock
 from typing import Any, Dict, Callable, Optional, List, Tuple
 
-import six
-from apscheduler.events import JobSubmissionEvent, EVENT_JOB_SUBMITTED, EVENT_JOB_MAX_INSTANCES, \
-    EVENT_ALL, SchedulerEvent
-from apscheduler.executors.base import MaxInstancesReachedError, BaseExecutor
+from apscheduler.events import EVENT_ALL, SchedulerEvent
+from apscheduler.executors.base import BaseExecutor
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.schedulers.base import STATE_PAUSED, BaseScheduler
-from apscheduler.util import timedelta_seconds, undefined
+from apscheduler.schedulers.base import BaseScheduler
+from apscheduler.util import undefined
 from rodi import Container
+
+from apscheduler_di.binding.util import normalize_job, get_method_annotations_base
 
 
 class ContextSchedulerDecorator(BaseScheduler):
 
-    def __init__(self, scheduler: BaseScheduler, **options: Any):
+    def __init__(self, scheduler: BaseScheduler):
         self.ctx = Container()
         self._scheduler = scheduler
         if isinstance(scheduler, AsyncIOScheduler):
             self._eventloop = asyncio.get_event_loop()  # for compat with AsyncIOScheduler
             self._timeout = None  # for compat with AsyncIOScheduler
-        self._scheduler._process_jobs = self._process_jobs
-        super().__init__(**options)
+        super().__init__()
 
     def wakeup(self) -> None:
         self._scheduler.wakeup()
@@ -49,12 +49,15 @@ class ContextSchedulerDecorator(BaseScheduler):
                 **trigger_args) -> Job:
         if kwargs is None:
             kwargs = {}
-        kwargs["ctx"] = None  # just trick
-        return self._scheduler.add_job(
+        for key in get_method_annotations_base(func).keys():
+            kwargs.update({key: None})
+        job = self._scheduler.add_job(
             func, trigger, args, kwargs, id, name, misfire_grace_time,
             coalesce, max_instances, next_run_time, jobstore, executor,
             replace_existing, **trigger_args
         )
+        job.kwargs = {}
+        return job
 
     def scheduled_job(self,
                       trigger: Optional[str] = None,
@@ -62,8 +65,8 @@ class ContextSchedulerDecorator(BaseScheduler):
                       kwargs: Optional[Dict[Any, Any]] = None,
                       id: Optional[str] = None,
                       name: Optional[str] = None,
-                      misfire_grace_time: int=undefined,
-                      coalesce: bool=undefined,
+                      misfire_grace_time: int = undefined,
+                      coalesce: bool = undefined,
                       max_instances: int = undefined,
                       next_run_time: datetime = undefined,
                       jobstore: str = 'default',
@@ -88,12 +91,20 @@ class ContextSchedulerDecorator(BaseScheduler):
     def remove_listener(self, callback: Callable[..., Any]) -> None:
         self._scheduler.remove_listener(callback)
 
-    def configure(self, gconfig: Dict[Any, Any] = {}, prefix: str = 'apscheduler.',
-                  **options: Any) -> None:
-        self._scheduler.configure(gconfig, prefix, **options)
-
     def start(self, paused: bool = False):
+        self._add_dependencies_to_jobs()
         self._scheduler.start(paused)
+
+    def _add_dependencies_to_jobs(self):
+        prepared_context = self.ctx.build_provider()
+        for job_store in self._scheduler._jobstores.values():  # type: BaseJobStore
+            def func_get_due_jobs_with_context(c: BaseJobStore, now: datetime):
+                jobs: List[Job] = type(job_store).get_due_jobs(c, now)
+                for job in jobs:
+                    job.func = normalize_job(job.func, prepared_context)
+                return jobs
+
+            job_store.get_due_jobs = types.MethodType(func_get_due_jobs_with_context, job_store)
 
     def pause(self):
         self._scheduler.pause()
@@ -140,9 +151,6 @@ class ContextSchedulerDecorator(BaseScheduler):
     def _create_trigger(self, trigger: str, trigger_args: Any):
         return self._scheduler._create_trigger(trigger, trigger_args)
 
-    def _configure(self, config: Dict[Any, Any]) -> None:
-        self._scheduler._configure(config)
-
     def _real_add_job(self, job: Job, jobstore_alias: str, replace_existing: bool):
         self._scheduler._real_add_job(job, jobstore_alias, replace_existing)
 
@@ -155,13 +163,13 @@ class ContextSchedulerDecorator(BaseScheduler):
     def _lookup_jobstore(self, alias: str) -> BaseJobStore:
         return self._scheduler._lookup_jobstore(alias)
 
-    def _lookup_job(self, job_id: str, jobstore_alias: str) -> Job:
+    def _lookup_job(self, job_id: str, jobstore_alias: str) -> Tuple[Job, str]:
         return self._scheduler._lookup_job(job_id, jobstore_alias)
 
     def _create_default_jobstore(self):
         return self._scheduler._create_default_jobstore()
 
-    def _create_lock(self):
+    def _create_lock(self) -> RLock:
         return self._scheduler._create_lock()
 
     def _create_plugin_instance(self, type_, alias, constructor_kwargs):
@@ -170,96 +178,5 @@ class ContextSchedulerDecorator(BaseScheduler):
     def _lookup_executor(self, alias):
         return self._scheduler._lookup_executor(alias)
 
-    def _process_jobs(self):
-        if self._scheduler.state == STATE_PAUSED:
-            self._scheduler._logger.debug('Scheduler is paused -- not processing jobs')
-            return None
-
-        self._scheduler._logger.debug('Looking for jobs to run')
-        now = datetime.now(self._scheduler.timezone)
-        next_wakeup_time = None
-        events = []
-        prepared_context = self.ctx.build_provider()
-
-        with self._scheduler._jobstores_lock:
-            for jobstore_alias, jobstore in six.iteritems(self._scheduler._jobstores):
-                try:
-                    due_jobs = jobstore.get_due_jobs(now)
-                except Exception as e:
-                    # Schedule a wakeup at least in jobstore_retry_interval seconds
-                    self._scheduler._logger.warning('Error getting due jobs from job store %r: %s',
-                                                    jobstore_alias, e)
-                    retry_wakeup_time = now + timedelta(
-                        seconds=self._scheduler.jobstore_retry_interval)
-                    if not next_wakeup_time or next_wakeup_time > retry_wakeup_time:
-                        next_wakeup_time = retry_wakeup_time
-
-                    continue
-
-                for job in due_jobs:
-                    # Look up the job's executor
-                    try:
-                        executor = self._scheduler._lookup_executor(job.executor)
-                    except BaseException:
-                        self._scheduler._logger.error(
-                            'Executor lookup ("%s") failed for job "%s" -- removing it from the '
-                            'job store', job.executor, job)
-                        self._scheduler.remove_job(job.id, jobstore_alias)
-                        continue
-
-                    run_times = job._get_run_times(now)
-                    run_times = run_times[-1:] if run_times and job.coalesce else run_times
-                    if run_times:
-                        try:
-                            job.kwargs.update(ctx=prepared_context)
-                            executor.submit_job(job, run_times)
-                        except MaxInstancesReachedError:
-                            self._scheduler._logger.warning(
-                                'Execution of job "%s" skipped: maximum number of running '
-                                'instances reached (%d)', job, job.max_instances)
-                            event = JobSubmissionEvent(EVENT_JOB_MAX_INSTANCES, job.id,
-                                                       jobstore_alias, run_times)
-                            events.append(event)
-                        except BaseException:
-                            self._scheduler._logger.exception(
-                                'Error submitting job "%s" to executor "%s"',
-                                job, job.executor)
-                        else:
-                            event = JobSubmissionEvent(EVENT_JOB_SUBMITTED, job.id, jobstore_alias,
-                                                       run_times)
-                            events.append(event)
-
-                        # Update the job if it has a next execution time.
-                        # Otherwise remove it from the job store.
-                        job_next_run = job.trigger.get_next_fire_time(run_times[-1], now)
-                        if job_next_run:
-                            job._modify(next_run_time=job_next_run)
-                            jobstore.update_job(job)
-                        else:
-                            self._scheduler.remove_job(job.id, jobstore_alias)
-
-                # Set a new next wakeup time if there isn't one yet or
-                # the jobstore has an even earlier one
-                jobstore_next_run_time = jobstore.get_next_run_time()
-                if jobstore_next_run_time and (next_wakeup_time is None or
-                                               jobstore_next_run_time < next_wakeup_time):
-                    next_wakeup_time = jobstore_next_run_time.astimezone(self._scheduler.timezone)
-
-        # Dispatch collected events
-        for event in events:
-            self._scheduler._dispatch_event(event)
-
-        # Determine the delay until this method should be called again
-        if self.state == STATE_PAUSED:
-            wait_seconds = None
-            self._scheduler._logger.debug('Scheduler is paused; waiting until resume() is called')
-        elif next_wakeup_time is None:
-            wait_seconds = None
-            self._scheduler._logger.debug('No jobs; waiting until a job is added')
-        else:
-            wait_seconds = min(max(timedelta_seconds(next_wakeup_time - now), 0), TIMEOUT_MAX)
-            self._scheduler._logger.debug('Next wakeup is due at %s (in %f seconds)',
-                                          next_wakeup_time,
-                                          wait_seconds)
-
-        return wait_seconds
+    def _process_jobs(self) -> Optional[float]:
+        return self._scheduler._process_jobs()
