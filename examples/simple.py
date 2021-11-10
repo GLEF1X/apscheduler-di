@@ -6,7 +6,7 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from rodi import Services
 
-from src.decorator import ContextSchedulerDecorator
+from apscheduler_di.decorator import ContextSchedulerDecorator
 
 # pip install redis
 job_defaults: Dict[str, RedisJobStore] = {

@@ -3,6 +3,28 @@ name = "apscheduler-di"
 version = "0.0.1"
 description = ""
 authors = ["Gleb Garanin <glebgar567@gmail.com>"]
+packages = [
+    { include = "./apscheduler_di" }
+]
+readme = 'README.md'
+maintainers = [
+    "GLEF1X <glebgar567@gmail.com>",
+]
+license = "MIT"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Natural Language :: Russian",
+    "Environment :: Console",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
+]
 
 [tool.poetry.dependencies]
 python = "^3.5"
