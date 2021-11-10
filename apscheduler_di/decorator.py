@@ -5,7 +5,7 @@ from typing import Any, Dict, Callable, Optional, List, Tuple
 
 import six
 from apscheduler.events import JobSubmissionEvent, EVENT_JOB_SUBMITTED, EVENT_JOB_MAX_INSTANCES, \
-    EVENT_ALL
+    EVENT_ALL, SchedulerEvent
 from apscheduler.executors.base import MaxInstancesReachedError, BaseExecutor
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
@@ -29,17 +29,7 @@ class ContextSchedulerDecorator(BaseScheduler):
     def wakeup(self) -> None:
         self._scheduler.wakeup()
 
-    def _start_timer(self, wait_seconds):
-        self._stop_timer()
-        if wait_seconds is not None:
-            self._timeout = self._eventloop.call_later(wait_seconds, self.wakeup)
-
-    def _stop_timer(self):
-        if self._timeout:
-            self._timeout.cancel()
-            del self._timeout
-
-    def shutdown(self, wait: bool = True):
+    def shutdown(self, wait: bool = True) -> None:
         self._scheduler.shutdown(wait=wait)
 
     def add_job(self,
@@ -49,8 +39,8 @@ class ContextSchedulerDecorator(BaseScheduler):
                 kwargs: Optional[Dict[Any, Any]] = None,
                 id: Optional[str] = None,
                 name: Optional[str] = None,
-                misfire_grace_time=undefined,
-                coalesce=undefined,
+                misfire_grace_time: int = undefined,
+                coalesce: bool = undefined,
                 max_instances: int = undefined,
                 next_run_time: datetime = undefined,
                 jobstore: str = 'default',
@@ -72,8 +62,8 @@ class ContextSchedulerDecorator(BaseScheduler):
                       kwargs: Optional[Dict[Any, Any]] = None,
                       id: Optional[str] = None,
                       name: Optional[str] = None,
-                      misfire_grace_time=undefined,
-                      coalesce=undefined,
+                      misfire_grace_time: int=undefined,
+                      coalesce: bool=undefined,
                       max_instances: int = undefined,
                       next_run_time: datetime = undefined,
                       jobstore: str = 'default',
@@ -84,8 +74,8 @@ class ContextSchedulerDecorator(BaseScheduler):
             max_instances, next_run_time, jobstore, executor, **trigger_args
         )
 
-    def resume_job(self, job_id, jobstore=None):
-        self._scheduler.resume_job(job_id, jobstore)
+    def resume_job(self, job_id: str, jobstore: Optional[str] = None) -> Optional[Job]:
+        return self._scheduler.resume_job(job_id, jobstore)
 
     def resume(self):
         self._scheduler.resume()
@@ -98,30 +88,15 @@ class ContextSchedulerDecorator(BaseScheduler):
     def remove_listener(self, callback: Callable[..., Any]) -> None:
         self._scheduler.remove_listener(callback)
 
-    def _configure(self, config: Dict[Any, Any]) -> None:
-        self._scheduler._configure(config)
-
     def configure(self, gconfig: Dict[Any, Any] = {}, prefix: str = 'apscheduler.',
                   **options: Any) -> None:
         self._scheduler.configure(gconfig, prefix, **options)
-
-    def _create_trigger(self, trigger: str, trigger_args: Any):
-        return self._scheduler._create_trigger(trigger, trigger_args)
 
     def start(self, paused: bool = False):
         self._scheduler.start(paused)
 
     def pause(self):
         self._scheduler.pause()
-
-    def _dispatch_event(self, event):
-        self._scheduler._dispatch_event(event)
-
-    def _real_add_job(self, job: Job, jobstore_alias: str, replace_existing: bool):
-        self._scheduler._real_add_job(job, jobstore_alias, replace_existing)
-
-    def _check_uwsgi(self) -> None:
-        self._scheduler._check_uwsgi()
 
     def remove_jobstore(self, alias: str, shutdown: bool = True):
         self._scheduler.remove_jobstore(alias, shutdown)
@@ -138,8 +113,8 @@ class ContextSchedulerDecorator(BaseScheduler):
     def print_jobs(self, jobstore: Optional[str] = None, out: Optional[Any] = None):
         self._scheduler.print_jobs(jobstore, out)
 
-    def pause_job(self, job_id: str, jobstore: Optional[str] = None):
-        self._scheduler.pause_job(job_id, jobstore)
+    def pause_job(self, job_id: str, jobstore: Optional[str] = None) -> Job:
+        return self._scheduler.pause_job(job_id, jobstore)
 
     def modify_job(self, job_id: str, jobstore: Optional[str] = None, **changes: Any) -> Job:
         return self._scheduler.modify_job(job_id, jobstore, **changes)
@@ -147,20 +122,35 @@ class ContextSchedulerDecorator(BaseScheduler):
     def get_jobs(self, jobstore: Optional[str] = None, pending=None) -> List[Job]:
         return self._scheduler.get_jobs(jobstore, pending)
 
-    def get_job(self, job_id: str, jobstore: Optional[str] = None):
+    def get_job(self, job_id: str, jobstore: Optional[str] = None) -> Job:
         return self._scheduler.get_job(job_id, jobstore)
 
     def add_listener(self, callback: Callable[..., Any], mask=EVENT_ALL):
         return self._scheduler.add_listener(callback, mask)
 
-    def _create_default_executor(self):
-        return self._scheduler._create_default_executor()
-
     def add_jobstore(self, jobstore: str, alias: str = 'default', **jobstore_opts):
-        return self._scheduler.add_jobstore(jobstore, alias, **jobstore_opts)
+        self._scheduler.add_jobstore(jobstore, alias, **jobstore_opts)
 
     def add_executor(self, executor: BaseExecutor, alias: str = 'default', **executor_opts):
         self._scheduler.add_executor(executor, alias, **executor_opts)
+
+    def _dispatch_event(self, event: SchedulerEvent):
+        self._scheduler._dispatch_event(event)
+
+    def _create_trigger(self, trigger: str, trigger_args: Any):
+        return self._scheduler._create_trigger(trigger, trigger_args)
+
+    def _configure(self, config: Dict[Any, Any]) -> None:
+        self._scheduler._configure(config)
+
+    def _real_add_job(self, job: Job, jobstore_alias: str, replace_existing: bool):
+        self._scheduler._real_add_job(job, jobstore_alias, replace_existing)
+
+    def _check_uwsgi(self) -> None:
+        self._scheduler._check_uwsgi()
+
+    def _create_default_executor(self):
+        return self._scheduler._create_default_executor()
 
     def _lookup_jobstore(self, alias: str) -> BaseJobStore:
         return self._scheduler._lookup_jobstore(alias)
