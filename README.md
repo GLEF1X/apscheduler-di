@@ -11,10 +11,10 @@
 * Supports type hints ([PEP 561](https://www.python.org/dev/peps/pep-0561/))
 * Extend `apscheduler` and provide handy aliases for events(such as `on_startup`, `on_shutdown` and
   etc)
-* Provide an opportunity to implement `Dependency Inversion` SOLID principle
+* Provide an opportunity to implement [Dependency Inversion](https://en.wikipedia.org/wiki/Dependency_inversion_principle) SOLID principle
 
 "Under the hood" `apscheduler-di` just
-implements [Decorator](~~https~~://en.wikipedia.org/wiki/Decorator_pattern) pattern and wraps up the
+implements [Decorator](https://en.wikipedia.org/wiki/Decorator_pattern) pattern and wraps up the
 work of native `BaseScheduler` using [rodi](https://github.com/Neoteroi/rodi) lib
 
 ### Quick example:

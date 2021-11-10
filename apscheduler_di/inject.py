@@ -39,7 +39,7 @@ def _convert_raw_to_easy_maintainable_jobs(
 
 def _inject_dependencies(scheduler: BaseScheduler, ctx: Container):
     prepared_context = ctx.build_provider()
-    for job_store in scheduler._jobstores.values():  # type: BaseJobStore
+    for job_store in scheduler._jobstores.values():  # type: BaseJobStore  # noqa
         def func_get_due_jobs_with_context(c: BaseJobStore, now: datetime):
             jobs: List[Job] = type(job_store).get_due_jobs(c, now)
             return _convert_raw_to_easy_maintainable_jobs(scheduler, jobs, prepared_context)

@@ -30,8 +30,7 @@ def tick(tack: Tack):
 
 
 def main():
-    scheduler = ContextSchedulerDecorator(BlockingScheduler(jobstores=job_stores,
-                                                            job_defaults=job_defaults))
+    scheduler = ContextSchedulerDecorator(BlockingScheduler())
     scheduler.ctx.add_instance(Tack(), Tack)
     scheduler.add_executor('processpool')
     scheduler.add_job(tick, 'interval', seconds=3)
