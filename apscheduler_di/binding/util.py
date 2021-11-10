@@ -1,7 +1,7 @@
 import inspect
 from functools import wraps
 from inspect import _ParameterKind, Signature
-from typing import Callable, Any, TypeVar, get_type_hints, Mapping
+from typing import Callable, Any, TypeVar, get_type_hints, Mapping, Dict
 
 from rodi import Services
 
@@ -36,28 +36,10 @@ class UnsupportedSignatureError(NormalizationError):
         )
 
 
-class UnsupportedForwardRefInSignatureError(NormalizationError):
-    def __init__(self, unsupported_type):
-        super().__init__(  # pragma: no cover
-            f"Cannot normalize method `{unsupported_type}` because its "
-            f"signature contains a forward reference (type annotation as string). "
-            f"Use type annotations to exact types to fix this error. "
-        )
-
-
-def _get_method_annotations_or_throw(method):
+def _get_method_annotations_or_throw(method: Callable[..., Any]) -> Dict[str, Any]:
     method_locals = getattr(method, "_locals", None)
     method_globals = getattr(method, "_globals", None)
-
-    try:
-        return get_type_hints(method, globalns=method_globals, localns=method_locals)
-    except TypeError:
-        if inspect.isclass(method) or hasattr(method, "__call__"):
-            # can be a callable class
-            return get_type_hints(
-                method.__call__, globalns=method_globals, localns=method_locals
-            )
-        raise  # pragma: no cover
+    return get_type_hints(method, globalns=method_globals, localns=method_locals)
 
 
 def get_method_annotations_base(method: Callable[..., Any]):
@@ -114,7 +96,7 @@ def get_async_wrapper(
     return wrapped_job
 
 
-def normalize_job_executable(job_fn: _T, services: Services) -> _T:
+def normalize_job_executable(job_fn: Callable[..., Any], services: Services) -> Callable[..., Any]:
     params = get_method_annotations_base(job_fn)
     params_len = len(params)
 

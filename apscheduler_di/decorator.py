@@ -12,7 +12,7 @@ from apscheduler.util import undefined
 from rodi import Container
 
 from apscheduler_di.binding.util import get_method_annotations_base
-from apscheduler_di.events import ApschedulerEventAlias
+from apscheduler_di.events import ApschedulerEvent
 from apscheduler_di.inject import listen_new_job_store_added, listen_startup
 
 
@@ -21,9 +21,9 @@ class ContextSchedulerDecorator(BaseScheduler):
     def __init__(self, scheduler: BaseScheduler):
         self.ctx = Container()
         self._scheduler = scheduler
-        self.on_startup = ApschedulerEventAlias(scheduler, on_event=EVENT_SCHEDULER_START)
-        self.on_error = ApschedulerEventAlias(scheduler, on_event=EVENT_JOB_ERROR)
-        self.on_shutdown = ApschedulerEventAlias(scheduler, on_event=EVENT_SCHEDULER_SHUTDOWN)
+        self.on_startup = ApschedulerEvent(scheduler, on_event=EVENT_SCHEDULER_START)
+        self.on_error = ApschedulerEvent(scheduler, on_event=EVENT_JOB_ERROR)
+        self.on_shutdown = ApschedulerEvent(scheduler, on_event=EVENT_SCHEDULER_SHUTDOWN)
 
         self.on_startup += functools.partial(listen_startup, scheduler=scheduler, ctx=self.ctx)
         self._scheduler.add_listener(

@@ -22,7 +22,7 @@ def _convert_raw_to_easy_maintainable_jobs(
 ) -> List[Job]:
     unsafe_pickling = False
     if isinstance(scheduler, BlockingScheduler):
-        unsafe_pickling = True
+        unsafe_pickling = True  # pragma: no cover
     if unsafe_pickling:
         return [
             TransferredBetweenProcessesJob(
@@ -48,11 +48,11 @@ def _inject_dependencies(scheduler: BaseScheduler, ctx: Container):
 
 
 def listen_startup(event: SchedulerEvent, scheduler: BaseScheduler, ctx: Container):
-    _inject_dependencies(scheduler, ctx)
+    _inject_dependencies(scheduler, ctx)  # pragma: no cover
 
 
 def listen_new_job_store_added(event: SchedulerEvent, scheduler: BaseScheduler, ctx: Container):
-    _inject_dependencies(scheduler, ctx)
+    _inject_dependencies(scheduler, ctx)  # pragma: no cover
 
 
 def set_serialization_options(event: SchedulerEvent, scheduler: BaseScheduler):
