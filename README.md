@@ -1,4 +1,5 @@
 # Implementation of dependency injection for `apscheduler`
+[![codecov](https://codecov.io/gh/GLEF1X/apscheduler-di/branch/master/graph/badge.svg?token=X71JFESNL5)](https://codecov.io/gh/GLEF1X/apscheduler-di)
 
 ### Prerequisites:
 
