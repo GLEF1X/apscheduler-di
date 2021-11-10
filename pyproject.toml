@@ -19,6 +19,8 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
@@ -27,12 +29,15 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.6"
 APScheduler = "^3.8.1"
 rodi = "^1.1.1"
 
 [tool.poetry.dev-dependencies]
-redis = "^3.5.3"
+# testing
+pytest = "^6.2.5"
+pytest-cov = "^3.0.0"
+pytest-asyncio = "^0.16.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

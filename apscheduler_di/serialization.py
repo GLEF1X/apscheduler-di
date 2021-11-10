@@ -28,8 +28,9 @@ class TransferredBetweenProcessesJob(Job):
         fn = kwargs["func"]
         if not callable(fn):
             fn = ref_to_obj(fn)
-        for key in get_method_annotations_base(fn).keys():
-            kwargs["kwargs"].update({key: None})  # hacking exception
+        if len(kwargs) + len(kwargs["args"]) < len(get_method_annotations_base(fn).keys()):
+            for key in get_method_annotations_base(fn).keys():
+                kwargs["kwargs"].update({key: None})  # hacking exception
         super().__init__(scheduler, **kwargs)
         self.kwargs = {}
         self._ctx = ctx
