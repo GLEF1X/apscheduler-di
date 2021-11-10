@@ -7,6 +7,7 @@ from apscheduler.events import EVENT_ALL, SchedulerEvent, EVENT_SCHEDULER_START,
     EVENT_JOBSTORE_ADDED, EVENT_JOB_ERROR, EVENT_SCHEDULER_SHUTDOWN
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
+from apscheduler.schedulers.asyncio import AsyncIOScheduler, run_in_event_loop
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.util import undefined
 from rodi import Container
@@ -33,9 +34,15 @@ class ContextSchedulerDecorator(BaseScheduler):
         super().__init__()
 
     def wakeup(self) -> None:
+        if isinstance(self._scheduler, AsyncIOScheduler):
+            run_in_event_loop(self._scheduler.wakeup)()
+            return None
         self._scheduler.wakeup()
 
     def shutdown(self, wait: bool = True) -> None:
+        if isinstance(self._scheduler, AsyncIOScheduler):
+            run_in_event_loop(self._scheduler.shutdown)()
+            return None
         self._scheduler.shutdown(wait=wait)
 
     def add_job(self,
