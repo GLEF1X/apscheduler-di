@@ -1,19 +1,19 @@
-import asyncio
-import types
+import functools
 from datetime import datetime
 from threading import RLock
 from typing import Any, Dict, Callable, Optional, List, Tuple
 
-from apscheduler.events import EVENT_ALL, SchedulerEvent
-from apscheduler.executors.base import BaseExecutor
+from apscheduler.events import EVENT_ALL, SchedulerEvent, EVENT_SCHEDULER_START, \
+    EVENT_JOBSTORE_ADDED, EVENT_JOB_ERROR, EVENT_SCHEDULER_SHUTDOWN
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.util import undefined
 from rodi import Container
 
-from apscheduler_di.binding.util import normalize_job, get_method_annotations_base
+from apscheduler_di.binding.util import get_method_annotations_base
+from apscheduler_di.events import ApschedulerEventAlias
+from apscheduler_di.inject import listen_new_job_store_added, listen_startup
 
 
 class ContextSchedulerDecorator(BaseScheduler):
@@ -21,9 +21,15 @@ class ContextSchedulerDecorator(BaseScheduler):
     def __init__(self, scheduler: BaseScheduler):
         self.ctx = Container()
         self._scheduler = scheduler
-        if isinstance(scheduler, AsyncIOScheduler):
-            self._eventloop = asyncio.get_event_loop()  # for compat with AsyncIOScheduler
-            self._timeout = None  # for compat with AsyncIOScheduler
+        self.on_startup = ApschedulerEventAlias(scheduler, on_event=EVENT_SCHEDULER_START)
+        self.on_error = ApschedulerEventAlias(scheduler, on_event=EVENT_JOB_ERROR)
+        self.on_shutdown = ApschedulerEventAlias(scheduler, on_event=EVENT_SCHEDULER_SHUTDOWN)
+
+        self.on_startup += functools.partial(listen_startup, scheduler=scheduler, ctx=self.ctx)
+        self._scheduler.add_listener(
+            functools.partial(listen_new_job_store_added, scheduler=scheduler, ctx=self.ctx),
+            mask=EVENT_JOBSTORE_ADDED
+        )
         super().__init__()
 
     def wakeup(self) -> None:
@@ -92,19 +98,7 @@ class ContextSchedulerDecorator(BaseScheduler):
         self._scheduler.remove_listener(callback)
 
     def start(self, paused: bool = False):
-        self._add_dependencies_to_jobs()
-        self._scheduler.start(paused)
-
-    def _add_dependencies_to_jobs(self):
-        prepared_context = self.ctx.build_provider()
-        for job_store in self._scheduler._jobstores.values():  # type: BaseJobStore
-            def func_get_due_jobs_with_context(c: BaseJobStore, now: datetime):
-                jobs: List[Job] = type(job_store).get_due_jobs(c, now)
-                for job in jobs:
-                    job.func = normalize_job(job.func, prepared_context)
-                return jobs
-
-            job_store.get_due_jobs = types.MethodType(func_get_due_jobs_with_context, job_store)
+        self._scheduler.start(paused=paused)
 
     def pause(self):
         self._scheduler.pause()
@@ -142,7 +136,7 @@ class ContextSchedulerDecorator(BaseScheduler):
     def add_jobstore(self, jobstore: str, alias: str = 'default', **jobstore_opts):
         self._scheduler.add_jobstore(jobstore, alias, **jobstore_opts)
 
-    def add_executor(self, executor: BaseExecutor, alias: str = 'default', **executor_opts):
+    def add_executor(self, executor: str, alias: str = 'default', **executor_opts):
         self._scheduler.add_executor(executor, alias, **executor_opts)
 
     def _dispatch_event(self, event: SchedulerEvent):

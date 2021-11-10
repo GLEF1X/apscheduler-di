@@ -78,56 +78,56 @@ def get_method_annotations_base(method: Callable[..., Any]):
 
 def get_sync_wrapper(
         services: Services,
-        func: _T,
+        job_fn: _T,
         params: Mapping[str, ParamInfo],
         params_len: int,
 ) -> _T:
     if params_len == 0:
-        return func
+        return job_fn
 
-    @wraps(func)
-    def job():
+    @wraps(job_fn)
+    def wrapped_job():
         values = []
         for param in params.values():
-            values.append(services.get(param.kind))
-        return func(*values)
+            values.append(services.get(param.annotation))
+        return job_fn(*values)
 
-    return job
+    return wrapped_job
 
 
 def get_async_wrapper(
         services: Services,
-        func: _T,
+        job_fn: _T,
         params: Mapping[str, ParamInfo],
-        params_len: int,
+        params_len: int
 ) -> _T:
     if params_len == 0:
-        return func
+        return job_fn
 
-    @wraps(func)
-    async def job():
+    @wraps(job_fn)
+    async def wrapped_job():
         values = []
         for param in params.values():
             values.append(services.get(param.annotation))
+        return await job_fn(*values)
 
-        return await func(*values)
-
-    return job
+    return wrapped_job
 
 
-def normalize_job(func: _T, services: Services) -> _T:
-    params = get_method_annotations_base(func)
+def normalize_job_executable(job_fn: _T, services: Services) -> _T:
+    params = get_method_annotations_base(job_fn)
     params_len = len(params)
 
     if any(
             str(param).startswith("*") or param.kind.value == _ParameterKind.KEYWORD_ONLY
             for param in params.values()
     ):
-        raise UnsupportedSignatureError(func)
+        raise UnsupportedSignatureError(job_fn)
 
-    if inspect.iscoroutinefunction(func):
-        normalized = get_async_wrapper(services, func, params, params_len)
+    if inspect.iscoroutinefunction(job_fn):
+        normalized = get_async_wrapper(services, job_fn, params, params_len)
+
     else:
-        normalized = get_sync_wrapper(services, func, params, params_len)
+        normalized = get_sync_wrapper(services, job_fn, params, params_len)
 
     return normalized

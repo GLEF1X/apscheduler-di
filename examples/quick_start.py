@@ -1,12 +1,10 @@
-import asyncio
-import dataclasses
-from abc import abstractmethod, ABC
+import os
 from typing import Dict
 
 from apscheduler.jobstores.redis import RedisJobStore
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 
-from apscheduler_di.decorator import ContextSchedulerDecorator
+from apscheduler_di import ContextSchedulerDecorator
 
 # pip install redis
 job_defaults: Dict[str, RedisJobStore] = {
@@ -21,53 +19,29 @@ job_stores: Dict[str, RedisJobStore] = {
 }
 
 
-# domain object:
-class Cat:
-    def __init__(self, name):
-        self.name = name
+class Tack:
+
+    def tack(self):
+        print("Tack!")
 
 
-@dataclasses.dataclass()
-class Config:
-    some_param: int
+def tick(tack: Tack):
+    print(tack)
 
 
-# abstract interface
-class ICatsRepository(ABC):
-    @abstractmethod
-    def get_by_id(self, _id) -> Cat:
+def main():
+    scheduler = ContextSchedulerDecorator(BlockingScheduler(jobstores=job_stores,
+                                                            job_defaults=job_defaults))
+    scheduler.ctx.add_instance(Tack(), Tack)
+    scheduler.add_executor('processpool')
+    scheduler.add_job(tick, 'interval', seconds=3)
+    print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
+
+    try:
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
         pass
 
 
-class PostgresCatsRepository(ICatsRepository):
-    def get_by_id(self, _id) -> Cat:
-        # TODO: implement logic to use a connection to the db
-        return Cat("...")
-
-
-async def some_job(repository: ICatsRepository, config: Config):
-    cat = repository.get_by_id(config.some_param)
-    print(cat.name)
-
-
-async def some_infinite_cycle():
-    while True:
-        await asyncio.sleep(.5)
-
-
-def run_scheduler():
-    scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores,
-                                                           job_defaults=job_defaults))
-    scheduler.ctx.add_instance(PostgresCatsRepository(), ICatsRepository)
-    scheduler.ctx.add_instance(Config(id=1), Config)
-    scheduler.add_job(some_job, trigger="interval", seconds=5)
-    scheduler.start()
-
-
-async def main():
-    run_scheduler()
-    await some_infinite_cycle()
-
-
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
