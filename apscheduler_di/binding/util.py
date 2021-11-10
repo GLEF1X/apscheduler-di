@@ -65,7 +65,7 @@ def get_sync_wrapper(
         params_len: int,
 ) -> _T:
     if params_len == 0:
-        return job_fn
+        return job_fn  # pragma: no cover
 
     @wraps(job_fn)
     def wrapped_job():
@@ -84,7 +84,7 @@ def get_async_wrapper(
         params_len: int
 ) -> _T:
     if params_len == 0:
-        return job_fn
+        return job_fn  # pragma: no cover
 
     @wraps(job_fn)
     async def wrapped_job():

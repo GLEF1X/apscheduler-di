@@ -19,18 +19,16 @@ def save_ssl_context(obj: ssl.SSLContext) -> Tuple[Type[ssl.SSLContext], Tuple[i
     return obj.__class__, (obj.protocol,)
 
 
-class TransferredBetweenProcessesJob(Job):
+class SharedJob(Job):
 
     def __init__(self, scheduler: BaseScheduler, ctx: Services, **kwargs):
-        version = kwargs.get("version")
-        if version is not None:
-            kwargs.pop("version")
+        args = kwargs.get("args", ())
         fn = kwargs["func"]
         if not callable(fn):
             fn = ref_to_obj(fn)
-        if len(kwargs) + len(kwargs["args"]) < len(get_method_annotations_base(fn).keys()):
-            for key in get_method_annotations_base(fn).keys():
-                kwargs["kwargs"].update({key: None})  # hacking exception
+        if len(kwargs) + len(args) < len(get_method_annotations_base(fn).keys()):
+            for key in get_method_annotations_base(fn).keys():  # pragma: no cover
+                kwargs["kwargs"].update({key: None})  # hacking exception  # pragma: no cover
         super().__init__(scheduler, **kwargs)
         self.kwargs = {}
         self._ctx = ctx
@@ -42,8 +40,10 @@ class TransferredBetweenProcessesJob(Job):
 
     def __setstate__(self, state):
         if state.get('version', 1) > 1:
-            raise ValueError('Job has version %s, but only version 1 can be handled' %
-                             state['version'])
+            raise ValueError(  # pragma: no cover
+                'Job has version %s, but only version 1 can be handled' %
+                state['version']
+            )
         self._ctx = pickle.loads(state["ctx"])
         self.id = state['id']
         self.func_ref = state['func']

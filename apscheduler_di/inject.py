@@ -12,7 +12,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from rodi import Container, Services
 
 from apscheduler_di.binding.util import normalize_job_executable
-from apscheduler_di.serialization import TransferredBetweenProcessesJob, save_ssl_context
+from apscheduler_di.serialization import SharedJob, save_ssl_context
 
 
 def _convert_raw_to_easy_maintainable_jobs(
@@ -24,8 +24,8 @@ def _convert_raw_to_easy_maintainable_jobs(
     if isinstance(scheduler, BlockingScheduler):
         unsafe_pickling = True  # pragma: no cover
     if unsafe_pickling:
-        return [
-            TransferredBetweenProcessesJob(
+        return [  # pragma: no cover
+            SharedJob(
                 scheduler=scheduler,
                 ctx=ctx,
                 **job.__getstate__()
