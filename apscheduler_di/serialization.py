@@ -31,7 +31,7 @@ class SharedJob(Job):
         kwargs["kwargs"].update(get_missing_arguments(fn, fn_args, fn_kwargs))
 
         if kwargs.get("version") is not None:
-            kwargs.pop("version")
+            kwargs.pop("version")  # pragma: no cover
         super().__init__(scheduler, **kwargs)
         self.kwargs = {}
         self._ctx = ctx

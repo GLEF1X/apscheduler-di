@@ -219,13 +219,12 @@ class ContextSchedulerDecorator(BaseScheduler):
         return self._scheduler._process_jobs()
 
 
-def _is_function_coroutine(fn: Callable[..., Any]) -> bool:
-    is_coroutine = inspect.iscoroutinefunction(fn)
-    if is_coroutine is False:
-        if not isinstance(fn, functools.partial):
-            return is_coroutine
-        is_coroutine = inspect.iscoroutinefunction(fn.func)
-    return is_coroutine
+def _dispatch_event(self: BaseScheduler, event: SchedulerEvent):
+    with self._listeners_lock:
+        listeners = tuple(self._listeners)
+    for cb, mask in listeners:
+        if event.code & mask:
+            _run_callback(self, callback=cb, event=event)
 
 
 def _run_callback(scheduler: BaseScheduler, callback: Callable[..., Any], event: SchedulerEvent):
@@ -242,9 +241,10 @@ def _run_callback(scheduler: BaseScheduler, callback: Callable[..., Any], event:
         scheduler._logger.exception('Error notifying listener')
 
 
-def _dispatch_event(self: BaseScheduler, event: SchedulerEvent):
-    with self._listeners_lock:
-        listeners = tuple(self._listeners)
-    for cb, mask in listeners:
-        if event.code & mask:
-            _run_callback(self, callback=cb, event=event)
+def _is_function_coroutine(fn: Callable[..., Any]) -> bool:
+    is_coroutine = inspect.iscoroutinefunction(fn)
+    if is_coroutine is False:
+        if not isinstance(fn, functools.partial):
+            return is_coroutine
+        is_coroutine = inspect.iscoroutinefunction(fn.func)
+    return is_coroutine
