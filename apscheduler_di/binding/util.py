@@ -1,4 +1,5 @@
 import inspect
+import types
 from functools import wraps
 from inspect import _ParameterKind, Signature
 from typing import Callable, Any, TypeVar, get_type_hints, Mapping, Dict
@@ -27,7 +28,7 @@ class ParamInfo:
 
 
 class UnsupportedSignatureError(NormalizationError):
-    def __init__(self, method):
+    def __init__(self, method: types.FunctionType):
         super().__init__(
             f"Cannot normalize method `{method.__qualname__}` because its "
             f"signature contains *args, or *kwargs, or keyword only parameters. "
@@ -42,7 +43,7 @@ def _get_method_annotations_or_throw(method: Callable[..., Any]) -> Dict[str, An
     return get_type_hints(method, globalns=method_globals, localns=method_locals)
 
 
-def get_method_annotations_base(method: Callable[..., Any]):
+def get_method_annotations_base(method: Callable[..., Any]) -> Dict[str, ParamInfo]:
     signature = Signature.from_callable(method)
     params = {
         key: ParamInfo(
@@ -96,7 +97,7 @@ def get_async_wrapper(
     return wrapped_job
 
 
-def normalize_job_executable(job_fn: Callable[..., Any], services: Services) -> Callable[..., Any]:
+def normalize_job_executable(job_fn: types.FunctionType, services: Services) -> Callable[..., Any]:
     params = get_method_annotations_base(job_fn)
     params_len = len(params)
 

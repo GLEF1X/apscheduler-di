@@ -1,10 +1,28 @@
+import asyncio
 import functools
+import inspect
+import types
 from datetime import datetime
 from threading import RLock
 from typing import Any, Dict, Callable, Optional, List, Tuple
 
-from apscheduler.events import EVENT_ALL, SchedulerEvent, EVENT_SCHEDULER_START, \
-    EVENT_JOBSTORE_ADDED, EVENT_JOB_ERROR, EVENT_SCHEDULER_SHUTDOWN
+from apscheduler.events import (
+    EVENT_ALL,
+    SchedulerEvent,
+    EVENT_SCHEDULER_STARTED,
+    EVENT_JOBSTORE_ADDED,
+    EVENT_JOB_ERROR,
+    EVENT_SCHEDULER_SHUTDOWN,
+    EVENT_SCHEDULER_PAUSED,
+    EVENT_SCHEDULER_RESUMED,
+    EVENT_EXECUTOR_ADDED,
+    EVENT_EXECUTOR_REMOVED,
+    EVENT_JOB_ADDED,
+    EVENT_JOB_MODIFIED,
+    EVENT_JOB_SUBMITTED,
+    EVENT_JOB_MISSED,
+    EVENT_ALL_JOBS_REMOVED
+)
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler, run_in_event_loop
@@ -12,8 +30,8 @@ from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.util import undefined
 from rodi import Container
 
-from apscheduler_di.binding.util import get_method_annotations_base
 from apscheduler_di.events import ApschedulerEvent
+from apscheduler_di.helper import get_missing_arguments
 from apscheduler_di.inject import listen_new_job_store_added, listen_startup
 
 
@@ -22,15 +40,34 @@ class ContextSchedulerDecorator(BaseScheduler):
     def __init__(self, scheduler: BaseScheduler):
         self.ctx = Container()
         self._scheduler = scheduler
-        self.on_startup = ApschedulerEvent(scheduler, on_event=EVENT_SCHEDULER_START)
-        self.on_error = ApschedulerEvent(scheduler, on_event=EVENT_JOB_ERROR)
-        self.on_shutdown = ApschedulerEvent(scheduler, on_event=EVENT_SCHEDULER_SHUTDOWN)
+        # Scheduler events
+        self.on_startup = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_SCHEDULER_STARTED)
+        self.on_shutdown = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_SCHEDULER_SHUTDOWN)
+        self.on_pause = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_SCHEDULER_PAUSED)
+        self.on_resume = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_SCHEDULER_RESUMED)
 
-        self.on_startup += functools.partial(listen_startup, scheduler=scheduler, ctx=self.ctx)
+        # executor events
+        self.on_executor_add = ApschedulerEvent(scheduler, self.ctx,
+                                                on_event=EVENT_EXECUTOR_ADDED)
+        self.on_executor_removed = ApschedulerEvent(scheduler, self.ctx,
+                                                    on_event=EVENT_EXECUTOR_REMOVED)
+
+        # job events
+        self.on_job_error = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_JOB_ERROR)
+        self.on_job_added = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_JOB_ADDED)
+        self.on_job_modified = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_JOB_MODIFIED)
+        self.on_job_submitted = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_JOB_SUBMITTED)
+        self.on_job_missed = ApschedulerEvent(scheduler, self.ctx, on_event=EVENT_JOB_MISSED)
+        self.on_all_jobs_removed = ApschedulerEvent(
+            scheduler, self.ctx, on_event=EVENT_ALL_JOBS_REMOVED
+        )
+
+        self.on_startup += functools.partial(listen_startup, scheduler=scheduler)
         self._scheduler.add_listener(
             functools.partial(listen_new_job_store_added, scheduler=scheduler, ctx=self.ctx),
             mask=EVENT_JOBSTORE_ADDED
         )
+        self._scheduler._dispatch_event = types.MethodType(_dispatch_event, self._scheduler)
         super().__init__()
 
     def wakeup(self) -> None:
@@ -48,7 +85,7 @@ class ContextSchedulerDecorator(BaseScheduler):
     def add_job(self,
                 func: Callable[..., Any],
                 trigger: Optional[str] = None,
-                args: Optional[Tuple[Any, ...]] = None,
+                args: Tuple[Any, ...] = (),
                 kwargs: Optional[Dict[Any, Any]] = None,
                 id: Optional[str] = None,
                 name: Optional[str] = None,
@@ -62,8 +99,7 @@ class ContextSchedulerDecorator(BaseScheduler):
                 **trigger_args) -> Job:
         if kwargs is None:
             kwargs = {}
-        for key in get_method_annotations_base(func).keys():
-            kwargs.update({key: None})
+        kwargs.update(get_missing_arguments(func, args, kwargs))
         job = self._scheduler.add_job(
             func, trigger, args, kwargs, id, name, misfire_grace_time,
             coalesce, max_instances, next_run_time, jobstore, executor,
@@ -137,7 +173,7 @@ class ContextSchedulerDecorator(BaseScheduler):
     def get_job(self, job_id: str, jobstore: Optional[str] = None) -> Job:
         return self._scheduler.get_job(job_id, jobstore)
 
-    def add_listener(self, callback: Callable[..., Any], mask=EVENT_ALL):
+    def add_listener(self, callback: Callable[..., Any], mask: int = EVENT_ALL):
         return self._scheduler.add_listener(callback, mask)
 
     def add_jobstore(self, jobstore: str, alias: str = 'default', **jobstore_opts):
@@ -146,8 +182,8 @@ class ContextSchedulerDecorator(BaseScheduler):
     def add_executor(self, executor: str, alias: str = 'default', **executor_opts):
         self._scheduler.add_executor(executor, alias, **executor_opts)
 
-    def _dispatch_event(self, event: SchedulerEvent):
-        self._scheduler._dispatch_event(event)
+    def _dispatch_event(self, event: SchedulerEvent) -> None:
+        return self._scheduler._dispatch_event(event)
 
     def _create_trigger(self, trigger: str, trigger_args: Any):
         return self._scheduler._create_trigger(trigger, trigger_args)
@@ -181,3 +217,34 @@ class ContextSchedulerDecorator(BaseScheduler):
 
     def _process_jobs(self) -> Optional[float]:
         return self._scheduler._process_jobs()
+
+
+def _is_function_coroutine(fn: Callable[..., Any]) -> bool:
+    is_coroutine = inspect.iscoroutinefunction(fn)
+    if is_coroutine is False:
+        if not isinstance(fn, functools.partial):
+            return is_coroutine
+        is_coroutine = inspect.iscoroutinefunction(fn.func)
+    return is_coroutine
+
+
+def _run_callback(scheduler: BaseScheduler, callback: Callable[..., Any], event: SchedulerEvent):
+    try:
+        if _is_function_coroutine(callback):
+            if isinstance(scheduler, AsyncIOScheduler):
+                scheduler._eventloop.create_task(callback(event))
+            else:
+                # can lead to warnings and unclosed descriptors or sockets
+                asyncio.create_task(callback(event))
+        else:
+            callback(event)
+    except BaseException:
+        scheduler._logger.exception('Error notifying listener')
+
+
+def _dispatch_event(self: BaseScheduler, event: SchedulerEvent):
+    with self._listeners_lock:
+        listeners = tuple(self._listeners)
+    for cb, mask in listeners:
+        if event.code & mask:
+            _run_callback(self, callback=cb, event=event)

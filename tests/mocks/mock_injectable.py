@@ -2,6 +2,7 @@ from datetime import datetime
 
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
+from apscheduler.util import obj_to_ref
 
 from tests.mocks.mock_schedulers import MockScheduler
 
@@ -46,6 +47,7 @@ class MockJob(Job):
     def __init__(self, scheduler, func):
         super().__init__(scheduler)
         self.func = func
+        self.func_ref = obj_to_ref(func)
 
     def _modify(self, **changes):
         pass

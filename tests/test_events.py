@@ -3,6 +3,7 @@ from typing import List
 import pytest
 from apscheduler.events import EVENT_ALL
 from apscheduler.events import EVENT_SCHEDULER_STARTED
+from rodi import Container
 
 from apscheduler_di.events import ApschedulerEvent
 from tests.mocks.mock_schedulers import MockScheduler
@@ -32,7 +33,7 @@ def some_event_handler(event):
 @pytest.fixture(name="event_collection", scope="function")
 def event_fixture() -> ApschedulerEvent:
     stub_scheduler = StubScheduler()
-    event = ApschedulerEvent(stub_scheduler, on_event=EVENT_SCHEDULER_STARTED)
+    event = ApschedulerEvent(stub_scheduler, on_event=EVENT_SCHEDULER_STARTED, ctx=Container())
     yield event
     stub_scheduler.clear()
 

@@ -9,32 +9,11 @@ from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.util import ref_to_obj
 from rodi import Container, Services
 
 from apscheduler_di.binding.util import normalize_job_executable
 from apscheduler_di.serialization import SharedJob, save_ssl_context
-
-
-def _convert_raw_to_easy_maintainable_jobs(
-        scheduler: BaseScheduler,
-        jobs: List[Job],
-        ctx: Services
-) -> List[Job]:
-    unsafe_pickling = False
-    if isinstance(scheduler, BlockingScheduler):
-        unsafe_pickling = True  # pragma: no cover
-    if unsafe_pickling:
-        return [  # pragma: no cover
-            SharedJob(
-                scheduler=scheduler,
-                ctx=ctx,
-                **job.__getstate__()
-            )
-            for job in jobs
-        ]
-    for job in jobs:
-        job.func = normalize_job_executable(job.func, ctx)
-    return jobs
 
 
 def _inject_dependencies(scheduler: BaseScheduler, ctx: Container):
@@ -47,11 +26,37 @@ def _inject_dependencies(scheduler: BaseScheduler, ctx: Container):
         job_store.get_due_jobs = types.MethodType(func_get_due_jobs_with_context, job_store)
 
 
-def listen_startup(event: SchedulerEvent, scheduler: BaseScheduler, ctx: Container):
+def _convert_raw_to_easy_maintainable_jobs(
+        scheduler: BaseScheduler,
+        jobs: List[Job],
+        ctx: Services
+) -> List[Job]:
+    unsafe_pickling = False
+    if isinstance(scheduler, BlockingScheduler):
+        unsafe_pickling = True  # pragma: no cover
+    if unsafe_pickling:
+        return _make_jobs_shared(jobs, scheduler, ctx)
+    for job in jobs:
+        origin_func = ref_to_obj(job.func_ref)
+        job.func = normalize_job_executable(origin_func, ctx)
+    return jobs
+
+
+def _make_jobs_shared(jobs: List[Job], scheduler: BaseScheduler, ctx: Services) -> List[SharedJob]:
+    shared_jobs: List[SharedJob] = []
+    for job in jobs:
+        if isinstance(job, SharedJob):
+            jobs.append(job)
+            continue
+        shared_jobs.append(SharedJob(scheduler, ctx, **job.__getstate__()))
+    return shared_jobs
+
+
+def listen_startup(event: SchedulerEvent, ctx: Container, scheduler: BaseScheduler):
     _inject_dependencies(scheduler, ctx)  # pragma: no cover
 
 
-def listen_new_job_store_added(event: SchedulerEvent, scheduler: BaseScheduler, ctx: Container):
+def listen_new_job_store_added(event: SchedulerEvent, ctx: Container, scheduler: BaseScheduler):
     _inject_dependencies(scheduler, ctx)  # pragma: no cover
 
 

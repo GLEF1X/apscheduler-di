@@ -30,10 +30,11 @@ async def some_infinite_cycle():
 
 
 def run_scheduler():
-    token = "1443362:AAEj8SUPVPoruXeX9fqoD_6f-1PQk7AHQ"
+    token = "1443372:AAEL5UPVPoruXeX9fqoD_6f-1Qk7AHQ"
+    bot = Bot(token)
     scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores,
                                                            job_defaults=job_defaults))
-    scheduler.ctx.add_instance(Bot(token), Bot)
+    scheduler.ctx.add_instance(bot, Bot)
     scheduler.add_job(send_message_by_timer, trigger="interval", seconds=5)
     scheduler.start()
 
