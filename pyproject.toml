@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apscheduler-di"
-version = "0.0.1"
+version = "0.0.2"
 description = ""
 authors = ["Gleb Garanin <glebgar567@gmail.com>"]
 packages = [
