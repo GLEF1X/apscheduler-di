@@ -2,10 +2,12 @@ import asyncio
 import functools
 import inspect
 import types
+import warnings
 from datetime import datetime
 from threading import RLock
 from typing import Any, Dict, Callable, Optional, List, Tuple
 
+import six
 from apscheduler.events import (
     EVENT_ALL,
     SchedulerEvent,
@@ -26,13 +28,13 @@ from apscheduler.events import (
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler, run_in_event_loop
-from apscheduler.schedulers.base import BaseScheduler
+from apscheduler.schedulers.base import BaseScheduler, STATE_STOPPED
 from apscheduler.util import undefined
 from rodi import Container
 
 from apscheduler_di.events import ApschedulerEvent
 from apscheduler_di.helper import get_missing_arguments
-from apscheduler_di.inject import listen_new_job_store_added, listen_startup
+from apscheduler_di.inject import _inject_dependencies
 
 
 class ContextSchedulerDecorator(BaseScheduler):
@@ -62,9 +64,9 @@ class ContextSchedulerDecorator(BaseScheduler):
             scheduler, self.ctx, on_event=EVENT_ALL_JOBS_REMOVED
         )
 
-        self.on_startup += functools.partial(listen_startup, scheduler=scheduler)
+        self.on_startup += lambda event, ctx: _inject_dependencies(scheduler, ctx)
         self._scheduler.add_listener(
-            functools.partial(listen_new_job_store_added, scheduler=scheduler, ctx=self.ctx),
+            lambda event: _inject_dependencies(scheduler, self.ctx),
             mask=EVENT_JOBSTORE_ADDED
         )
         self._scheduler._dispatch_event = types.MethodType(_dispatch_event, self._scheduler)
@@ -72,14 +74,12 @@ class ContextSchedulerDecorator(BaseScheduler):
 
     def wakeup(self) -> None:
         if isinstance(self._scheduler, AsyncIOScheduler):
-            run_in_event_loop(self._scheduler.wakeup)()
-            return None
+            return run_in_event_loop(self._scheduler.wakeup)()
         self._scheduler.wakeup()
 
     def shutdown(self, wait: bool = True) -> None:
         if isinstance(self._scheduler, AsyncIOScheduler):
-            run_in_event_loop(self._scheduler.shutdown)()
-            return None
+            return run_in_event_loop(self._scheduler.shutdown)()
         self._scheduler.shutdown(wait=wait)
 
     def add_job(self,
@@ -96,16 +96,40 @@ class ContextSchedulerDecorator(BaseScheduler):
                 jobstore: str = 'default',
                 executor: str = 'default',
                 replace_existing: bool = False,
-                **trigger_args) -> Job:
+                **trigger_args) -> Job:  # pragma: no cover
         if kwargs is None:
             kwargs = {}
+
         kwargs.update(get_missing_arguments(func, args, kwargs))
-        job = self._scheduler.add_job(
-            func, trigger, args, kwargs, id, name, misfire_grace_time,
-            coalesce, max_instances, next_run_time, jobstore, executor,
-            replace_existing, **trigger_args
-        )
+
+        job_kwargs = {
+            'trigger': self._scheduler._create_trigger(trigger, trigger_args),
+            'executor': executor,
+            'func': func,
+            'args': tuple(args) if args is not None else (),
+            'kwargs': dict(kwargs) if kwargs is not None else {},
+            'id': id,
+            'name': name,
+            'misfire_grace_time': misfire_grace_time,
+            'coalesce': coalesce,
+            'max_instances': max_instances,
+            'next_run_time': next_run_time
+        }
+        job_kwargs = dict((key, value) for key, value in six.iteritems(job_kwargs) if
+                          value is not undefined)
+        job = Job(self._scheduler, **job_kwargs)
+
         job.kwargs = {}
+
+        # Don't really add jobs to job stores before the scheduler is up and running
+        with self._scheduler._jobstores_lock:
+            if self._scheduler.state == STATE_STOPPED:
+                self._scheduler._pending_jobs.append((job, jobstore, replace_existing))
+                self._scheduler._logger.info('Adding job tentatively -- it will be properly scheduled when '
+                                             'the scheduler starts')
+            else:
+                self._scheduler._real_add_job(job, jobstore, replace_existing)
+
         return job
 
     def scheduled_job(self,
@@ -233,7 +257,12 @@ def _run_callback(scheduler: BaseScheduler, callback: Callable[..., Any], event:
             if isinstance(scheduler, AsyncIOScheduler):
                 scheduler._eventloop.create_task(callback(event))
             else:
-                # can lead to warnings and unclosed descriptors or sockets
+                warnings.warn(
+                    "running async events with sync scheduler"
+                    " can lead to unpredictable behavior and unclosed descriptors or sockets",
+                    UserWarning,
+                    stacklevel=3
+                )
                 asyncio.create_task(callback(event))
         else:
             callback(event)

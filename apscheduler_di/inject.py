@@ -52,14 +52,6 @@ def _make_jobs_shared(jobs: List[Job], scheduler: BaseScheduler, ctx: Services) 
     return shared_jobs
 
 
-def listen_startup(event: SchedulerEvent, ctx: Container, scheduler: BaseScheduler):
-    _inject_dependencies(scheduler, ctx)  # pragma: no cover
-
-
-def listen_new_job_store_added(event: SchedulerEvent, ctx: Container, scheduler: BaseScheduler):
-    _inject_dependencies(scheduler, ctx)  # pragma: no cover
-
-
 def set_serialization_options(event: SchedulerEvent, scheduler: BaseScheduler):
     if isinstance(scheduler, BlockingScheduler):
         copyreg.pickle(ssl.SSLContext, save_ssl_context)
