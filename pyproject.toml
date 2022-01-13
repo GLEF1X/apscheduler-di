@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "apscheduler-di"
 version = "0.0.3"
-description = ""
+description = "Lightweight and beneficial Dependency Injection plugin for apscheduler "
 authors = ["Gleb Garanin <glebgar567@gmail.com>"]
 packages = [
     { include = "./apscheduler_di" }
