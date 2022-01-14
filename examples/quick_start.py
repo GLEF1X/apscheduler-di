@@ -7,11 +7,6 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler_di import ContextSchedulerDecorator
 
 # pip install redis
-job_defaults: Dict[str, RedisJobStore] = {
-    "default": RedisJobStore(
-        jobs_key="dispatched_trips_jobs", run_times_key="dispatched_trips_running"
-    )
-}
 job_stores: Dict[str, RedisJobStore] = {
     "default": RedisJobStore(
         jobs_key="dispatched_trips_jobs", run_times_key="dispatched_trips_running"
@@ -30,7 +25,7 @@ def tick(tack: Tack):
 
 
 def main():
-    scheduler = ContextSchedulerDecorator(BlockingScheduler())
+    scheduler = ContextSchedulerDecorator(BlockingScheduler(jobstores=job_stores))
     scheduler.ctx.add_instance(Tack(), Tack)
     scheduler.add_executor('processpool')
     scheduler.add_job(tick, 'interval', seconds=3)

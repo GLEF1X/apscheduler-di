@@ -8,11 +8,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler_di.decorator import ContextSchedulerDecorator
 
 # pip install redis
-job_defaults: Dict[str, RedisJobStore] = {
-    "default": RedisJobStore(
-        jobs_key="dispatched_trips_jobs", run_times_key="dispatched_trips_running"
-    )
-}
 job_stores: Dict[str, RedisJobStore] = {
     "default": RedisJobStore(
         jobs_key="dispatched_trips_jobs", run_times_key="dispatched_trips_running"
@@ -32,8 +27,7 @@ async def some_infinite_cycle():
 def run_scheduler():
     token = "1443372:AAEL5UPVPoruXeX9fqoD_6f-1Qk7AHQ"
     bot = Bot(token)
-    scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores,
-                                                           job_defaults=job_defaults))
+    scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores))
     scheduler.ctx.add_instance(bot, Bot)
     scheduler.add_job(send_message_by_timer, trigger="interval", seconds=5)
     scheduler.start()

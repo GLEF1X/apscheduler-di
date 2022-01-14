@@ -9,11 +9,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler_di.decorator import ContextSchedulerDecorator
 
 # pip install redis
-job_defaults: Dict[str, RedisJobStore] = {
-    "default": RedisJobStore(
-        jobs_key="dispatched_trips_jobs", run_times_key="dispatched_trips_running"
-    )
-}
 job_stores: Dict[str, RedisJobStore] = {
     "default": RedisJobStore(
         jobs_key="dispatched_trips_jobs", run_times_key="dispatched_trips_running"
@@ -56,8 +51,7 @@ async def some_infinite_cycle():
 
 
 def run_scheduler():
-    scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores,
-                                                           job_defaults=job_defaults))
+    scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores))
     scheduler.ctx.add_instance(PostgresCatsRepository(), ICatsRepository)
     scheduler.ctx.add_instance(Config(some_param=1), Config)
     scheduler.add_job(some_job, trigger="interval", seconds=5)

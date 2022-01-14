@@ -29,7 +29,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.6"
 APScheduler = "^3.8.1"
 rodi = "^1.1.1"
 
@@ -40,5 +40,5 @@ pytest-cov = { version = "^3.0.0", python = ">=3.6" }
 pytest-asyncio = { version = "^0.16.0", python = ">=3.6" }
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
