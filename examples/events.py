@@ -11,13 +11,8 @@ def tick():
     raise Exception("Ooops, something went wrong(")
 
 
-async def some_framework_loop():
-    while True:
-        await asyncio.sleep(.5)
-
-
 async def handle_job_error(event: JobExecutionEvent, ctx: Container):
-    pass  # handling exception here
+    print("OH NO!! WE GOT EXCEPTION")  # handling exception here
 
 
 async def main():
@@ -25,7 +20,11 @@ async def main():
     scheduler.on_job_error += handle_job_error
     scheduler.add_job(tick, 'interval', seconds=3)
     scheduler.start()
-    await some_framework_loop()
+
+    try:
+        await asyncio.Future()
+    except (SystemExit, KeyboardInterrupt):
+        pass
 
 
 if __name__ == '__main__':

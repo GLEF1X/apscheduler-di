@@ -100,14 +100,14 @@ class ContextSchedulerDecorator(BaseScheduler):
         if kwargs is None:
             kwargs = {}
 
-        kwargs.update(get_missing_arguments(func, args, kwargs))
+        fake_kwargs = {**kwargs, **get_missing_arguments(func, args, kwargs)}
 
         job_kwargs = {
             'trigger': self._scheduler._create_trigger(trigger, trigger_args),
             'executor': executor,
             'func': func,
             'args': tuple(args) if args is not None else (),
-            'kwargs': dict(kwargs) if kwargs is not None else {},
+            'kwargs': fake_kwargs,
             'id': id,
             'name': name,
             'misfire_grace_time': misfire_grace_time,
@@ -115,11 +115,9 @@ class ContextSchedulerDecorator(BaseScheduler):
             'max_instances': max_instances,
             'next_run_time': next_run_time
         }
-        job_kwargs = dict((key, value) for key, value in six.iteritems(job_kwargs) if
-                          value is not undefined)
+        job_kwargs = dict((key, value) for key, value in six.iteritems(job_kwargs) if value is not undefined)
         job = Job(self._scheduler, **job_kwargs)
-
-        job.kwargs = {}
+        job.kwargs = kwargs
 
         # Don't really add jobs to job stores before the scheduler is up and running
         with self._scheduler._jobstores_lock:

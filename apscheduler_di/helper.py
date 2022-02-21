@@ -1,6 +1,6 @@
 from typing import Tuple, Any, Dict, Callable
 
-from apscheduler_di.binding.util import get_method_annotations_base
+from apscheduler_di.binding import get_func_param_specs
 
 
 def get_missing_arguments(func: Callable[..., Any], args: Tuple[Any, ...],
@@ -13,8 +13,8 @@ def get_missing_arguments(func: Callable[..., Any], args: Tuple[Any, ...],
     :return:
     """
     missing_keyword_arguments: Dict[str, None] = {}
-    if len(kwargs) + len(args) < len(get_method_annotations_base(func).keys()):
-        for key in get_method_annotations_base(func).keys():
+    if len(kwargs) + len(args) < len(get_func_param_specs(func).keys()):
+        for key in get_func_param_specs(func).keys():
             missing_keyword_arguments[key] = None
 
     return missing_keyword_arguments

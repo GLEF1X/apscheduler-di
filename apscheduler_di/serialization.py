@@ -1,13 +1,13 @@
 import pickle
 import ssl
-from typing import Callable, Any, Type, Tuple
+from typing import Callable, Any, Type, Tuple, Dict
 
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.util import ref_to_obj
 from rodi import Services
 
-from apscheduler_di.binding.util import normalize_job_executable
+from apscheduler_di.binding import normalize_job_executable
 from apscheduler_di.helper import get_missing_arguments
 
 
@@ -50,11 +50,11 @@ class SharedJob(Job):
         self._ctx = pickle.loads(state["ctx"])
         self.id = state['id']
         self.func_ref = state['func']
+        self.args = state['args']
+        self.kwargs = state['kwargs']
         self.func = _load_func_from_ref(self.func_ref, self._ctx)
         self.trigger = state['trigger']
         self.executor = state['executor']
-        self.args = state['args']
-        self.kwargs = state['kwargs']
         self.name = state['name']
         self.misfire_grace_time = state['misfire_grace_time']
         self.coalesce = state['coalesce']

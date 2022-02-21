@@ -12,7 +12,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.util import ref_to_obj
 from rodi import Container, Services
 
-from apscheduler_di.binding.util import normalize_job_executable
+from apscheduler_di.binding import normalize_job_executable
 from apscheduler_di.serialization import SharedJob, save_ssl_context
 
 
