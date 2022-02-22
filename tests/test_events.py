@@ -5,7 +5,7 @@ from apscheduler.events import EVENT_ALL
 from apscheduler.events import EVENT_SCHEDULER_STARTED
 from rodi import Container
 
-from apscheduler_di.events import ApschedulerEvent
+from apscheduler_di._events import ApschedulerEvent
 from tests.mocks.mock_schedulers import MockScheduler
 
 

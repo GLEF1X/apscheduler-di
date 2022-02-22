@@ -11,12 +11,12 @@ from rodi import Container
 class ApschedulerEvent:
     def __init__(self, scheduler: BaseScheduler, ctx: Container, on_event: int) -> None:
         self._scheduler = scheduler
-        self.on_event = on_event
+        self._on_event = on_event
         self._ctx = ctx
 
     def __iadd__(self, handler: Callable[..., Any]) -> "ApschedulerEvent":
         with_context = functools.partial(handler, ctx=self._ctx)
-        self._scheduler.add_listener(callback=with_context, mask=self.on_event)
+        self._scheduler.add_listener(callback=with_context, mask=self._on_event)
         return self
 
     def __isub__(self, handler: Callable[..., Any]) -> "ApschedulerEvent":

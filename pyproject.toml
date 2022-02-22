@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apscheduler-di"
-version = "0.0.3"
+version = "0.0.4"
 description = "Lightweight and beneficial Dependency Injection plugin for apscheduler "
 authors = ["Gleb Garanin <glebgar567@gmail.com>"]
 packages = [
@@ -35,9 +35,10 @@ rodi = "^1.1.1"
 
 [tool.poetry.dev-dependencies]
 # testing
-pytest = { version = "^6.2.5", python = ">=3.6" }
+pytest = { version = "^7.0.1", python = ">=3.6" }
 pytest-cov = { version = "^3.0.0", python = ">=3.6" }
-pytest-asyncio = { version = "^0.16.0", python = ">=3.6" }
+pytest-asyncio = { version = "^0.18.1", python = ">=3.7" }
+redis = {version = "*", optional = true}
 
 [build-system]
 requires = ["poetry-core"]

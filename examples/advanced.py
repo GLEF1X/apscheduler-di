@@ -27,7 +27,6 @@ class Config:
     some_param: int
 
 
-# abstract interface
 class ICatsRepository(ABC):
     @abstractmethod
     def get_by_id(self, _id) -> Cat:

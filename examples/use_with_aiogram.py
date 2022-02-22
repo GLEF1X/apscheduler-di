@@ -16,16 +16,11 @@ job_stores: Dict[str, RedisJobStore] = {
 
 
 async def send_message_by_timer(bot: Bot):
-    await bot.send_message(chat_id=4434, text="Hello world!")
-
-
-async def some_infinite_cycle():
-    while True:
-        await asyncio.sleep(.5)
+    await bot.send_message(chat_id=1219185039, text="Hello world!")
 
 
 def run_scheduler():
-    token = "1443372:AAEL5UPVPoruXeX9fqoD_6f-1Qk7AHQ"
+    token = "BOT TOKEN"
     bot = Bot(token)
     scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores))
     scheduler.ctx.add_instance(bot, Bot)
@@ -35,7 +30,10 @@ def run_scheduler():
 
 async def main():
     run_scheduler()
-    await some_infinite_cycle()
+    try:
+        await asyncio.Future()
+    except (SystemExit, KeyboardInterrupt):
+        pass
 
 
 if __name__ == '__main__':
