@@ -1,7 +1,7 @@
 # Implementation of dependency injection for `apscheduler`
 [![PyPI version](https://img.shields.io/pypi/v/apscheduler-di.svg)](https://pypi.org/project/apscheduler-di/)[![codecov](https://codecov.io/gh/GLEF1X/apscheduler-di/branch/master/graph/badge.svg?token=X71JFESNL5)](https://codecov.io/gh/GLEF1X/apscheduler-di)[![Downloads](https://pepy.tech/badge/apscheduler-di/week)](https://pepy.tech/project/apscheduler-di)
 
-### Prerequisites:
+### Motivation:
 
 * `apscheduler-di` solves the problem since `apscheduler` doesn't support Dependency Injection
   natively, and it's real problem for developers to pass on complicated objects to jobs without
