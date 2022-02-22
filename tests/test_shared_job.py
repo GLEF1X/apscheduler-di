@@ -5,7 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.util import obj_to_ref
 from rodi import Container
 
-from apscheduler_di.serialization import SharedJob
+from apscheduler_di._serialization import SharedJob
 from tests.mocks.mock_schedulers import MockScheduler
 
 

@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from apscheduler_di.helper import get_missing_arguments
+from apscheduler_di._helper import get_missing_arguments
 
 
 def some_function(arg1: int, arg2: str, arg3: Tuple):

@@ -1,6 +1,6 @@
 from typing import Tuple, Any, Dict, Callable
 
-from apscheduler_di.binding import get_func_param_specs
+from apscheduler_di._binding import get_func_param_specs
 
 
 def get_missing_arguments(func: Callable[..., Any], args: Tuple[Any, ...],

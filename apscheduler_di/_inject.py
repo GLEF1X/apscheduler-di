@@ -1,10 +1,7 @@
-import copyreg
-import ssl
 import types
 from datetime import datetime
 from typing import List
 
-from apscheduler.events import SchedulerEvent
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.schedulers.base import BaseScheduler
@@ -12,11 +9,11 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.util import ref_to_obj
 from rodi import Container, Services
 
-from apscheduler_di.binding import normalize_job_executable
-from apscheduler_di.serialization import SharedJob, save_ssl_context
+from apscheduler_di._binding import normalize_job_executable
+from apscheduler_di._serialization import SharedJob
 
 
-def _inject_dependencies(scheduler: BaseScheduler, ctx: Container):
+def inject_dependencies_to_scheduler(scheduler: BaseScheduler, ctx: Container):
     prepared_context = ctx.build_provider()
     for job_store in scheduler._jobstores.values():  # type: BaseJobStore  # noqa
         def func_get_due_jobs_with_context(c: BaseJobStore, now: datetime):
@@ -50,8 +47,3 @@ def _make_jobs_shared(jobs: List[Job], scheduler: BaseScheduler, ctx: Services) 
             continue
         shared_jobs.append(SharedJob(scheduler, ctx, **job.__getstate__()))
     return shared_jobs
-
-
-def set_serialization_options(event: SchedulerEvent, scheduler: BaseScheduler):
-    if isinstance(scheduler, BlockingScheduler):
-        copyreg.pickle(ssl.SSLContext, save_ssl_context)

@@ -1,6 +1,8 @@
 import asyncio
+import copyreg
 import functools
 import inspect
+import ssl
 import types
 import warnings
 from datetime import datetime
@@ -29,12 +31,13 @@ from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler, run_in_event_loop
 from apscheduler.schedulers.base import BaseScheduler, STATE_STOPPED
+from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.util import undefined
 from rodi import Container
 
-from apscheduler_di.events import ApschedulerEvent
-from apscheduler_di.helper import get_missing_arguments
-from apscheduler_di.inject import _inject_dependencies
+from apscheduler_di._events import ApschedulerEvent
+from apscheduler_di._helper import get_missing_arguments
+from apscheduler_di._inject import inject_dependencies_to_scheduler
 
 
 class ContextSchedulerDecorator(BaseScheduler):
@@ -64,12 +67,19 @@ class ContextSchedulerDecorator(BaseScheduler):
             scheduler, self.ctx, on_event=EVENT_ALL_JOBS_REMOVED
         )
 
-        self.on_startup += lambda event, ctx: _inject_dependencies(scheduler, ctx)
+        self.on_startup += lambda event, ctx: inject_dependencies_to_scheduler(self._scheduler, ctx)
         self._scheduler.add_listener(
-            lambda event: _inject_dependencies(scheduler, self.ctx),
+            lambda event: inject_dependencies_to_scheduler(self._scheduler, self.ctx),
             mask=EVENT_JOBSTORE_ADDED
         )
         self._scheduler._dispatch_event = types.MethodType(_dispatch_event, self._scheduler)
+
+        if isinstance(self._scheduler, BlockingScheduler):
+            def save_ssl_context(obj):
+                return obj.__class__, (obj.protocol,)
+
+            copyreg.pickle(ssl.SSLContext, save_ssl_context)
+
         super().__init__()
 
     def wakeup(self) -> None:
@@ -241,12 +251,12 @@ class ContextSchedulerDecorator(BaseScheduler):
         return self._scheduler._process_jobs()
 
 
-def _dispatch_event(self: BaseScheduler, event: SchedulerEvent):
-    with self._listeners_lock:
-        listeners = tuple(self._listeners)
+def _dispatch_event(s: BaseScheduler, event: SchedulerEvent):
+    with s._listeners_lock:
+        listeners = tuple(s._listeners)
     for cb, mask in listeners:
         if event.code & mask:
-            _run_callback(self, callback=cb, event=event)
+            _run_callback(s, callback=cb, event=event)
 
 
 def _run_callback(scheduler: BaseScheduler, callback: Callable[..., Any], event: SchedulerEvent):
@@ -256,8 +266,8 @@ def _run_callback(scheduler: BaseScheduler, callback: Callable[..., Any], event:
                 scheduler._eventloop.create_task(callback(event))
             else:
                 warnings.warn(
-                    "running async events with sync scheduler"
-                    " can lead to unpredictable behavior and unclosed descriptors or sockets",
+                    "Running async events with sync scheduler"
+                    "shall lead to unpredictable behavior and unclosed descriptors or sockets",
                     UserWarning,
                     stacklevel=3
                 )

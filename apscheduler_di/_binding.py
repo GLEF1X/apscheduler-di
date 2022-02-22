@@ -3,9 +3,9 @@ import inspect
 from inspect import Signature, _ParameterKind
 from typing import TypeVar, Callable, Any, Dict, get_type_hints, List
 
-from rodi import Services, CannotResolveTypeException
+from rodi import Services, CannotResolveTypeException, GetServiceContext
 
-_T = TypeVar("_T", bound=Callable[..., Any])
+T = TypeVar("T", bound=Callable[..., Any])
 
 
 class NormalizationError(Exception):
@@ -79,7 +79,7 @@ def _get_method_annotations_or_throw(method: Callable[..., Any]) -> Dict[str, An
     return get_type_hints(method, globalns=method_globals, localns=method_locals)
 
 
-def get_sync_wrapper(services: Services, func: _T) -> _T:
+def get_sync_wrapper(services: Services, func: T) -> T:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*resolve_dependencies(services, func, **kwargs))
@@ -87,7 +87,7 @@ def get_sync_wrapper(services: Services, func: _T) -> _T:
     return wrapper
 
 
-def get_async_wrapper(services: Services, func: _T) -> _T:
+def get_async_wrapper(services: Services, func: T) -> T:
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         return await func(*resolve_dependencies(services, func, **kwargs))
@@ -98,11 +98,12 @@ def get_async_wrapper(services: Services, func: _T) -> _T:
 def resolve_dependencies(services: Services, func: Callable[..., Any], **kwargs: Any) -> List[Any]:
     dependencies = []
     for param_spec in get_func_param_specs(func).values():
-        try:
-            instance = services.get(param_spec.annotation)
-        except CannotResolveTypeException:
-            instance = kwargs.get(param_spec.name)
-            if instance is None:
-                raise
-        dependencies.append(instance)
+        with GetServiceContext() as context:
+            try:
+                instance = services.get(param_spec.annotation, context)
+            except CannotResolveTypeException:
+                instance = kwargs.get(param_spec.name)
+                if instance is None:
+                    raise
+            dependencies.append(instance)
     return dependencies

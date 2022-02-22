@@ -1,7 +1,7 @@
 import pytest
 from rodi import Container, Services
 
-from apscheduler_di.binding import UnsupportedSignatureError, normalize_job_executable
+from apscheduler_di._binding import UnsupportedSignatureError, normalize_job_executable
 
 
 class ExampleOne:

@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict
+from typing import Dict, Any
 
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -20,15 +20,18 @@ class Broadcaster:
         print("Tack!")
 
 
-def broadcast(user_id: int, broadcaster: Broadcaster):
-    print(f"Executing broadcast task using {user_id=} and {broadcaster=}")
+def broadcast(user_id: int, broadcaster: Broadcaster, additional_data: Dict[str, Any]):
+    print(f"Executing broadcast task using {user_id=} and {broadcaster=} and {additional_data}")
 
 
 async def main():
     scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores))
     scheduler.ctx.add_instance(Broadcaster(), Broadcaster)
     scheduler.add_job(broadcast, 'interval', seconds=3, kwargs={
-        "user_id": 543534
+        "user_id": 543534,
+        "additional_data": {
+            "hello": "world"
+        }
     })
 
     scheduler.start()

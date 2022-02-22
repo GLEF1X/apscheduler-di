@@ -1,23 +1,18 @@
 import pickle
-import ssl
-from typing import Callable, Any, Type, Tuple, Dict
+from typing import Callable, Any
 
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.util import ref_to_obj
 from rodi import Services
 
-from apscheduler_di.binding import normalize_job_executable
-from apscheduler_di.helper import get_missing_arguments
+from apscheduler_di._binding import normalize_job_executable
+from apscheduler_di._helper import get_missing_arguments
 
 
 def _load_func_from_ref(func_ref: str, ctx: Services) -> Callable[..., Any]:
     original_func = ref_to_obj(func_ref)
     return normalize_job_executable(original_func, ctx)
-
-
-def save_ssl_context(obj: ssl.SSLContext) -> Tuple[Type[ssl.SSLContext], Tuple[int, ...]]:
-    return obj.__class__, (obj.protocol,)
 
 
 class SharedJob(Job):

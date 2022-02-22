@@ -38,7 +38,6 @@ rodi = "^1.1.1"
 pytest = { version = "^7.0.1", python = ">=3.6" }
 pytest-cov = { version = "^3.0.0", python = ">=3.6" }
 pytest-asyncio = { version = "^0.18.1", python = ">=3.7" }
-
 redis = {version = "*", optional = true}
 
 [build-system]

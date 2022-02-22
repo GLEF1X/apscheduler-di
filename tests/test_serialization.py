@@ -2,12 +2,11 @@ import pickle
 import ssl
 from datetime import datetime
 
-from apscheduler.events import EVENT_ALL
 from apscheduler.triggers.cron import CronTrigger
 from rodi import Container
 
-from apscheduler_di.inject import set_serialization_options
-from apscheduler_di.serialization import SharedJob
+from apscheduler_di import ContextSchedulerDecorator
+from apscheduler_di._serialization import SharedJob
 from tests.mocks.mock_schedulers import MockScheduler, MockBlockingScheduler
 
 
@@ -37,8 +36,7 @@ def test_pickle_special_job():
 def test_pickle_special_job_with_ssl_context():
     container = Container()
     provider = container.build_provider()
-    scheduler = MockBlockingScheduler()
-    set_serialization_options(EVENT_ALL, scheduler)
+    scheduler = ContextSchedulerDecorator(MockBlockingScheduler())
     job = SharedJob(scheduler, provider,
                     func=example_job2,
                     trigger=CronTrigger(second=5),

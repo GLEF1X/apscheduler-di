@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -13,6 +13,8 @@ job_stores: Dict[str, RedisJobStore] = {
     )
 }
 
+_previous_id: Optional[int] = None
+
 
 class DatabaseSession:
 
@@ -21,12 +23,14 @@ class DatabaseSession:
 
 async def make_request_to_database(session: DatabaseSession):
     await session.query()
-    print(id(session))  # always different
 
 
 async def main():
     scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores))
-    scheduler.ctx.add_transient_by_factory(lambda: DatabaseSession(), DatabaseSession)
+    scheduler.ctx.add_scoped_by_factory(
+        lambda: DatabaseSession(),
+        DatabaseSession
+    )
     scheduler.add_job(make_request_to_database, 'interval', seconds=3)
 
     scheduler.start()
