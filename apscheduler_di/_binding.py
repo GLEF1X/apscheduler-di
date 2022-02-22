@@ -36,6 +36,12 @@ class UnsupportedSignatureError(NormalizationError):
         )
 
 
+class UnableToResolveDependencyError(Exception):
+    def __init__(self, message: str, third_party_di_lib_exception: Exception):
+        super().__init__(f"Unable to resolve the dependency: {message}")
+        self.third_party_di_lib_exception = third_party_di_lib_exception
+
+
 def normalize_job_executable(func: Callable[..., Any], services: Services, ) -> Callable[..., Any]:
     check_if_signature_is_supported(func)
 
@@ -101,9 +107,12 @@ def resolve_dependencies(services: Services, func: Callable[..., Any], **kwargs:
         with GetServiceContext() as context:
             try:
                 instance = services.get(param_spec.annotation, context)
-            except CannotResolveTypeException:
+            except CannotResolveTypeException as ex:
                 instance = kwargs.get(param_spec.name)
                 if instance is None:
-                    raise
+                    raise UnableToResolveDependencyError(
+                        "instance found neither in "
+                        "context nor in scheduler.add_job(..., kwargs=) argument", ex
+                    ) from ex
             dependencies.append(instance)
     return dependencies

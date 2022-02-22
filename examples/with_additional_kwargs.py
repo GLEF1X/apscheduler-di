@@ -32,6 +32,7 @@ async def main():
         "additional_data": {
             "hello": "world"
         }
+
     })
 
     scheduler.start()
