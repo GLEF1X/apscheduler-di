@@ -16,17 +16,20 @@ from apscheduler_di._serialization import SharedJob
 def inject_dependencies_to_scheduler(scheduler: BaseScheduler, ctx: Container):
     prepared_context = ctx.build_provider()
     for job_store in scheduler._jobstores.values():  # type: BaseJobStore  # noqa
+
         def func_get_due_jobs_with_context(c: BaseJobStore, now: datetime):
             jobs: List[Job] = type(job_store).get_due_jobs(c, now)
-            return _convert_raw_to_easy_maintainable_jobs(scheduler, jobs, prepared_context)
+            return _convert_raw_to_easy_maintainable_jobs(
+                scheduler, jobs, prepared_context
+            )
 
-        job_store.get_due_jobs = types.MethodType(func_get_due_jobs_with_context, job_store)
+        job_store.get_due_jobs = types.MethodType(
+            func_get_due_jobs_with_context, job_store
+        )
 
 
 def _convert_raw_to_easy_maintainable_jobs(
-        scheduler: BaseScheduler,
-        jobs: List[Job],
-        ctx: Services
+    scheduler: BaseScheduler, jobs: List[Job], ctx: Services
 ) -> List[Job]:
     unsafe_pickling = False
     if isinstance(scheduler, BlockingScheduler):
@@ -39,7 +42,9 @@ def _convert_raw_to_easy_maintainable_jobs(
     return jobs
 
 
-def _make_jobs_shared(jobs: List[Job], scheduler: BaseScheduler, ctx: Services) -> List[SharedJob]:
+def _make_jobs_shared(
+    jobs: List[Job], scheduler: BaseScheduler, ctx: Services
+) -> List[SharedJob]:
     shared_jobs: List[SharedJob] = []
     for job in jobs:
         if isinstance(job, SharedJob):

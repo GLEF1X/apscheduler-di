@@ -16,7 +16,6 @@ def injectable(d: Dependency):
 
 
 class MockJobStore(BaseJobStore):
-
     def lookup_job(self, job_id):
         pass
 
@@ -43,7 +42,6 @@ class MockJobStore(BaseJobStore):
 
 
 class MockJob(Job):
-
     def __init__(self, scheduler, func):
         super().__init__(scheduler)
         self.func = func
@@ -57,13 +55,10 @@ class MockJob(Job):
 
 
 class InjectableMockOfScheduler(MockScheduler):
-
     def __init__(self, **options):
         super().__init__(**options)
-        self._jobstores = {
-            "default": MockJobStore()
-        }
+        self._jobstores = {'default': MockJobStore()}
 
     def get_jobs(self, jobstore=None, pending=None):
-        mock_jobstore = self._jobstores["default"]
+        mock_jobstore = self._jobstores['default']
         return mock_jobstore.get_due_jobs(datetime.now())

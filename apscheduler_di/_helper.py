@@ -1,10 +1,11 @@
-from typing import Tuple, Any, Dict, Callable
+from typing import Any, Callable, Dict, Tuple
 
 from apscheduler_di._binding import get_func_param_specs
 
 
-def get_missing_arguments(func: Callable[..., Any], args: Tuple[Any, ...],
-                          kwargs: Dict[Any, Any]) -> Dict[str, None]:
+def get_missing_arguments(
+    func: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[Any, Any]
+) -> Dict[str, None]:
     """
     Get arguments to skip ValueError with traceback "The following arguments have not been supplied"
     It raises, because we injecting our dependencies using functools.wraps and do not change

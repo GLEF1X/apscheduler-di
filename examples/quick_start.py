@@ -8,16 +8,15 @@ from apscheduler_di import ContextSchedulerDecorator
 
 # pip install redis
 job_stores: Dict[str, RedisJobStore] = {
-    "default": RedisJobStore(
-        jobs_key="dispatched_trips_jobs", run_times_key="dispatched_trips_running"
+    'default': RedisJobStore(
+        jobs_key='dispatched_trips_jobs', run_times_key='dispatched_trips_running'
     )
 }
 
 
 class Tack:
-
     def tack(self):
-        print("Tack!")
+        print('Tack!')
 
 
 def tick(tack: Tack):

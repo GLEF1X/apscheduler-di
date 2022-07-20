@@ -4,13 +4,11 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 
 class MockExecutor(BaseExecutor):
-
     def _do_submit_job(self, job, run_times):
         pass
 
 
 class MockScheduler(BaseScheduler):
-
     def __init__(self, **options):
         super().__init__(**options)
         self.executor = MockExecutor()

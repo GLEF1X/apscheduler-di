@@ -8,11 +8,11 @@ from apscheduler_di import ContextSchedulerDecorator
 
 
 def tick():
-    raise Exception("Ooops, something went wrong(")
+    raise Exception('Ooops, something went wrong(')
 
 
 async def handle_job_error(event: JobExecutionEvent, ctx: Container):
-    print("OH NO!! WE GOT EXCEPTION")  # handling exception here
+    print('OH NO!! WE GOT EXCEPTION')  # handling exception here
 
 
 async def main():

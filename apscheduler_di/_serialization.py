@@ -1,5 +1,5 @@
 import pickle
-from typing import Callable, Any
+from typing import Any, Callable
 
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
@@ -16,17 +16,16 @@ def _load_func_from_ref(func_ref: str, ctx: Services) -> Callable[..., Any]:
 
 
 class SharedJob(Job):
-
     def __init__(self, scheduler: BaseScheduler, ctx: Services, **kwargs):
-        fn_args = kwargs.get("args", ())
-        fn_kwargs = kwargs.get("kwargs", {})
-        fn = kwargs["func"]
+        fn_args = kwargs.get('args', ())
+        fn_kwargs = kwargs.get('kwargs', {})
+        fn = kwargs['func']
         if not callable(fn):
             fn = ref_to_obj(fn)
-        kwargs["kwargs"].update(get_missing_arguments(fn, fn_args, fn_kwargs))
+        kwargs['kwargs'].update(get_missing_arguments(fn, fn_args, fn_kwargs))
 
-        if kwargs.get("version") is not None:
-            kwargs.pop("version")  # pragma: no cover
+        if kwargs.get('version') is not None:
+            kwargs.pop('version')  # pragma: no cover
         super().__init__(scheduler, **kwargs)
         self.kwargs = {}
         self._ctx = ctx
@@ -39,10 +38,10 @@ class SharedJob(Job):
     def __setstate__(self, state):
         if state.get('version', 1) > 1:
             raise ValueError(  # pragma: no cover
-                'Job has version %s, but only version 1 can be handled' %
-                state['version']
+                'Job has version %s, but only version 1 can be handled'
+                % state['version']
             )
-        self._ctx = pickle.loads(state["ctx"])
+        self._ctx = pickle.loads(state['ctx'])
         self.id = state['id']
         self.func_ref = state['func']
         self.args = state['args']

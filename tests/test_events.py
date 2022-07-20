@@ -1,8 +1,7 @@
 from typing import List
 
 import pytest
-from apscheduler.events import EVENT_ALL
-from apscheduler.events import EVENT_SCHEDULER_STARTED
+from apscheduler.events import EVENT_ALL, EVENT_SCHEDULER_STARTED
 from rodi import Container
 
 from apscheduler_di._events import ApschedulerEvent
@@ -30,10 +29,12 @@ def some_event_handler(event):
     pass
 
 
-@pytest.fixture(name="event_collection", scope="function")
+@pytest.fixture(name='event_collection', scope='function')
 def event_fixture() -> ApschedulerEvent:
     stub_scheduler = StubScheduler()
-    event = ApschedulerEvent(stub_scheduler, on_event=EVENT_SCHEDULER_STARTED, ctx=Container())
+    event = ApschedulerEvent(
+        stub_scheduler, on_event=EVENT_SCHEDULER_STARTED, ctx=Container()
+    )
     yield event
     stub_scheduler.clear()
 

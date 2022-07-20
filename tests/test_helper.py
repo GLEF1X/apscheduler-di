@@ -9,4 +9,4 @@ def some_function(arg1: int, arg2: str, arg3: Tuple):
 
 def test_get_missing_arguments():
     missing_arguments = get_missing_arguments(some_function, args=(), kwargs={})
-    assert missing_arguments == {"arg1": None, "arg2": None, "arg3": None}
+    assert missing_arguments == {'arg1': None, 'arg2': None, 'arg3': None}

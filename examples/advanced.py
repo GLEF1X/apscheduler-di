@@ -1,6 +1,6 @@
 import asyncio
 import dataclasses
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from typing import Dict
 
 from apscheduler.jobstores.redis import RedisJobStore
@@ -10,8 +10,8 @@ from apscheduler_di.decorator import ContextSchedulerDecorator
 
 # pip install redis
 job_stores: Dict[str, RedisJobStore] = {
-    "default": RedisJobStore(
-        jobs_key="dispatched_trips_jobs", run_times_key="dispatched_trips_running"
+    'default': RedisJobStore(
+        jobs_key='dispatched_trips_jobs', run_times_key='dispatched_trips_running'
     )
 }
 
@@ -36,7 +36,7 @@ class ICatsRepository(ABC):
 class PostgresCatsRepository(ICatsRepository):
     def get_by_id(self, _id) -> Cat:
         # TODO: implement logic to use a connection to the db
-        return Cat("...")
+        return Cat('...')
 
 
 async def some_job(repository: ICatsRepository, config: Config):
@@ -46,14 +46,14 @@ async def some_job(repository: ICatsRepository, config: Config):
 
 async def some_infinite_cycle():
     while True:
-        await asyncio.sleep(.5)
+        await asyncio.sleep(0.5)
 
 
 def run_scheduler():
     scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=job_stores))
     scheduler.ctx.add_instance(PostgresCatsRepository(), ICatsRepository)
     scheduler.ctx.add_instance(Config(some_param=1), Config)
-    scheduler.add_job(some_job, trigger="interval", seconds=5)
+    scheduler.add_job(some_job, trigger='interval', seconds=5)
     scheduler.start()
 
 
