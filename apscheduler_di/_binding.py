@@ -111,8 +111,9 @@ def resolve_dependencies(services: Services, func: Callable[..., Any], **kwargs:
                 instance = kwargs.get(param_spec.name)
                 if instance is None:
                     raise UnableToResolveDependencyError(
-                        "instance found neither in "
-                        "context nor in scheduler.add_job(..., kwargs=) argument", ex
+                        f'Instance of {param_spec.name} argument found neither in '
+                        'apscheduler-di context nor in kwargs argument',
+                        ex,
                     ) from ex
             dependencies.append(instance)
     return dependencies
