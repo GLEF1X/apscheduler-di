@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apscheduler-di"
-version = "0.0.6"
+version = "0.0.7"
 description = "Lightweight and beneficial Dependency Injection plugin for apscheduler "
 authors = ["Gleb Garanin <glebgar567@gmail.com>"]
 packages = [
@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Framework :: AsyncIO",
     "Typing :: Typed",
