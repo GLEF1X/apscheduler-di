@@ -1,4 +1,4 @@
-name: Deploy
+name: Publish to the Pypi
 
 on:
   push:
@@ -12,25 +12,29 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: "3.10"
 
-      - name: Install dependencies
-        run: |
-          pip install -U pip virtualenv poetry
-          poetry config virtualenvs.create false
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.2.1
+          virtualenvs-create: false
+          installer-parallel: true
+
       - name: Build
         run: |
           poetry build
       - name: Try install wheel
         run: |
+          pip install -U virtualenv
           mkdir -p try_install
           cd try_install
           virtualenv venv
-          venv/bin/pip install ../dist/apscheduler_di-*.whl
-          venv/bin/python -c "import apscheduler_di; print(apscheduler_di.__version__)"
+          venv/bin/pip install ../dist/glQiwiApi-*.whl
+          venv/bin/python -c "import glQiwiApi; print(glQiwiApi.__version__)"
       - name: Publish artifacts
         uses: actions/upload-artifact@v2
         with:
