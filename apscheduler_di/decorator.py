@@ -99,13 +99,9 @@ class ContextSchedulerDecorator(BaseScheduler):
         super().__init__()
 
     def wakeup(self) -> None:
-        if isinstance(self._scheduler, AsyncIOScheduler):
-            return run_in_event_loop(self._scheduler.wakeup)()
         self._scheduler.wakeup()
 
     def shutdown(self, wait: bool = True) -> None:
-        if isinstance(self._scheduler, AsyncIOScheduler):
-            return run_in_event_loop(self._scheduler.shutdown)()
         self._scheduler.shutdown(wait=wait)
 
     def add_job(
