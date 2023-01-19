@@ -21,7 +21,7 @@ from apscheduler.events import (EVENT_ALL, EVENT_ALL_JOBS_REMOVED,
                                 EVENT_SCHEDULER_STARTED, SchedulerEvent)
 from apscheduler.job import Job
 from apscheduler.jobstores.base import BaseJobStore
-from apscheduler.schedulers.asyncio import AsyncIOScheduler, run_in_event_loop
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers.base import STATE_STOPPED, BaseScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.util import undefined

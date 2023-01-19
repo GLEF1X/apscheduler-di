@@ -3,7 +3,7 @@ import inspect
 from inspect import Signature, _ParameterKind
 from typing import Any, Callable, Dict, List, TypeVar, get_type_hints
 
-from rodi import CannotResolveTypeException, GetServiceContext, Services
+from rodi import CannotResolveTypeException, ActivationScope, Services
 
 T = TypeVar('T', bound=Callable[..., Any])
 
@@ -109,7 +109,7 @@ def resolve_dependencies(
 ) -> List[Any]:
     dependencies = []
     for param_spec in get_func_param_specs(func).values():
-        with GetServiceContext() as context:
+        with ActivationScope() as context:
             try:
                 instance = services.get(param_spec.annotation, context)
             except CannotResolveTypeException as ex:
