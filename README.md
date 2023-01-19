@@ -43,7 +43,7 @@ class Tack:
         print("Tack!")
 
 
-def tick(tack: Tack):
+def tick(tack: Tack, some_argument: int):
     print(tack)
 
 
@@ -51,7 +51,7 @@ def main():
     scheduler = ContextSchedulerDecorator(BlockingScheduler(jobstores=job_stores))
     scheduler.ctx.add_instance(Tack(), Tack)
     scheduler.add_executor('processpool')
-    scheduler.add_job(tick, 'interval', seconds=3)
+    scheduler.add_job(tick, 'interval', seconds=3, kwargs={"some_argument": 5})
     print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
 
     try:
