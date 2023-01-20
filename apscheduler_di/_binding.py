@@ -3,7 +3,7 @@ import inspect
 from inspect import Signature, _ParameterKind
 from typing import Any, Callable, Dict, List, TypeVar, get_type_hints
 
-from rodi import CannotResolveTypeException, ActivationScope, Services
+from rodi import ActivationScope, CannotResolveTypeException, Services
 
 T = TypeVar('T', bound=Callable[..., Any])
 
