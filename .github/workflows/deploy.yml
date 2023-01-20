@@ -33,8 +33,8 @@ jobs:
           mkdir -p try_install
           cd try_install
           virtualenv venv
-          venv/bin/pip install ../dist/glQiwiApi-*.whl
-          venv/bin/python -c "import glQiwiApi; print(glQiwiApi.__version__)"
+          venv/bin/pip install ../dist/apscheduler-di-*.whl
+          venv/bin/python -c "import apscheduler_di; print(apscheduler_di.__version__)"
       - name: Publish artifacts
         uses: actions/upload-artifact@v2
         with:
