@@ -63,7 +63,7 @@ jobs:
         uses: snok/install-poetry@v1
         if: "env.IS_PYPY == 'false' || env.IS_WINDOWS == 'false'"
         with:
-          version: 1.2.1
+          version: 1.3.2
           virtualenvs-create: true
           virtualenvs-in-project: true
           installer-parallel: true
