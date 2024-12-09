@@ -3,18 +3,16 @@
 
 ### Motivation:
 
-* `apscheduler-di` solves the problem since `apscheduler` doesn't support Dependency Injection
-  natively, and it's real problem for developers to pass on complicated objects to jobs without
-  corruptions
+* `apscheduler-di` addresses the issue of `apscheduler` not natively supporting Dependency Injection, making it challenging for developers to pass complex objects to jobs without encountering issues.
 
 ## Features:
 
 * Supports type hints ([PEP 561](https://www.python.org/dev/peps/pep-0561/))
 * Extend `apscheduler` and provide handy aliases for events(such as `on_startup`, `on_shutdown` and
   etc)
-* Provide an opportunity to implement [Dependency Inversion](https://en.wikipedia.org/wiki/Dependency_inversion_principle) SOLID principle
+* Offers a way to implement the [Dependency Inversion](https://en.wikipedia.org/wiki/Dependency_inversion_principle) principle from SOLID design principles.
 
-"Under the hood" `apscheduler-di` just
+"Under the hood" `apscheduler-di`
 implements [Decorator](https://en.wikipedia.org/wiki/Decorator_pattern) pattern and wraps up the
 work of native `BaseScheduler` using [rodi](https://github.com/Neoteroi/rodi) lib
 
